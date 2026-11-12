@@ -426,8 +426,8 @@
 "triage.col.words" = "Words";
 "triage.corpusNote" = "Note on the corpus";
 "triage.corpusNote.placeholder" = "Which documents are counted, and which are not";
-"triage.countLine" = "“%@”: %@ per 1,000 words (%d words)";
-"triage.countLine.imported" = "“%@”: %@ per 1,000 words (%d words, imported)";
+"triage.countLine" = "%d times · %@ per 1,000 words · %d words";
+"triage.countLine.imported" = "%d times · %@ per 1,000 words · %d words (imported)";
 "triage.date" = "Date";
 "triage.defaultName" = "Triage report";
 "triage.defaultTitle" = "Quote triage";

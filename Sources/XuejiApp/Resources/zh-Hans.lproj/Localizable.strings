@@ -426,8 +426,8 @@
 "triage.col.words" = "字数";
 "triage.corpusNote" = "语料说明";
 "triage.corpusNote.placeholder" = "哪些文件计入统计，哪些不计入";
-"triage.countLine" = "“%@”：每千字 %@ 次（共 %d 字）";
-"triage.countLine.imported" = "“%@”：每千字 %@ 次（共 %d 字，导入）";
+"triage.countLine" = "%d 次 · 每千字 %@ 次 · 共 %d 字";
+"triage.countLine.imported" = "%d 次 · 每千字 %@ 次 · 共 %d 字（导入）";
 "triage.date" = "日期";
 "triage.defaultName" = "分级报告";
 "triage.defaultTitle" = "引文分级";

@@ -26,8 +26,13 @@ extension Workspace {
                     summary.skippedWithoutLink += 1
                     continue
                 }
-                if matchingSourceID(trackID: trackID, title: source.title, url: url, urlIsExact: false) != nil {
+                // A source the student discarded does not count as "already there": importing it again brings it back.
+                if let existing = items.values.first(where: { item in
+                    item.trackID == trackID && item.kind == .source && item.approval != .rejected
+                        && Self.same(item.title, source.title)
+                }) {
                     summary.skippedDuplicates += 1
+                    if existing.approval == .pending { summary.skippedPending += 1 }
                     continue
                 }
                 var values: [String: FieldValue] = [:]
@@ -140,7 +145,7 @@ extension Workspace {
         var values: [String: FieldValue] = [:]
         if !reference.authors.isEmpty { values["authors"] = .text(reference.authors) }
         if let year = reference.year { values["year"] = .number(Double(year)) }
-        if !reference.venue.isEmpty { values["venue"] = .text(reference.venue) }
+        if !reference.venueWithDetails.isEmpty { values["venue"] = .text(reference.venueWithDetails) }
         if !reference.doi.isEmpty { values["doi"] = .text(reference.doi) }
         let item = try propose(
             trackID: trackID, typeID: ItemType.sourceID, title: reference.title, url: url,

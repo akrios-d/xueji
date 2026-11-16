@@ -17,6 +17,10 @@ final class ReaderViewModel: IReaderView, IReaderController {
     private(set) var searchText = ""
     private(set) var searchStatus: String?
     private(set) var message: String?
+    private(set) var followScroll = UserDefaults.standard.object(forKey: "readerFollowScroll") as? Bool ?? true
+    private(set) var visiblePages: Set<Int> = []
+    private(set) var focusedMarkID: String?
+    private(set) var markQuery = ""
 
     @ObservationIgnored private weak var pdfView: PDFView?
     @ObservationIgnored private var matches: [PDFSelection] = []
@@ -85,6 +89,30 @@ final class ReaderViewModel: IReaderView, IReaderController {
         }
     }
     func selectionChanged(hasSelection: Bool) { self.hasSelection = hasSelection }
+
+    func visiblePagesChanged(_ pages: [Int]) {
+        let set = Set(pages)
+        if set != visiblePages { visiblePages = set }
+        updateFocus()
+    }
+
+    var shownMarks: [ReaderMark] {
+        let words = markQuery.split(whereSeparator: \.isWhitespace).map(String.init)
+        guard !words.isEmpty else { return marks }
+        // Every word has to be in the quote, the note or the page label, whatever the case or the accents.
+        return marks.filter { mark in
+            let text = [mark.quote, mark.note, mark.pageLabel].joined(separator: " ")
+            return words.allSatisfy { text.range(of: $0, options: [.caseInsensitive, .diacriticInsensitive]) != nil }
+        }
+    }
+
+    func setMarkQuery(_ text: String) { markQuery = text }
+
+    func setFollowScroll(_ follow: Bool) {
+        followScroll = follow
+        UserDefaults.standard.set(follow, forKey: "readerFollowScroll")
+        updateFocus()
+    }
 
     func selectVersion(id: UUID) {
         currentVersionID = id
@@ -338,10 +366,23 @@ final class ReaderViewModel: IReaderView, IReaderController {
             let note = parts.compactMap { $0.annotation.contents }.first { !$0.isEmpty } ?? ""
             return ReaderMark(
                 id: group, kind: first.kind, colorHex: first.colorHex,
-                pageLabel: first.page.label ?? String(first.pageIndex + 1),
+                pageLabel: first.page.label ?? String(first.pageIndex + 1), pageIndex: first.pageIndex,
                 quote: Self.clean(quote), note: note
             )
         }
+        updateFocus()
+    }
+
+    /// The first mark on the pages on screen, or the next one below them (the last one at the end of the file).
+    private func updateFocus() {
+        guard let top = visiblePages.min(), !marks.isEmpty else {
+            if focusedMarkID != nil { focusedMarkID = nil }
+            return
+        }
+        let target = marks.first { visiblePages.contains($0.pageIndex) }
+            ?? marks.first { $0.pageIndex > top }
+            ?? marks.last
+        if target?.id != focusedMarkID { focusedMarkID = target?.id }
     }
 
     private func text(of found: Found) -> String {

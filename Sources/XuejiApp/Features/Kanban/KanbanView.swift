@@ -11,18 +11,19 @@ struct KanbanView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
-            ScrollView(.horizontal) {
-                HStack(alignment: .top, spacing: 14) {
-                    ForEach(viewModel.columns) { column in
-                        ColumnView(
-                            column: column, viewModel: viewModel, isAlone: viewModel.visibleStage != nil,
-                            onSelect: select, onOpen: open
-                        )
-                    }
+            if viewModel.visibleStage != nil {
+                // One stage: its column takes the whole width and lays the cards out in a grid.
+                columnsRow
+                    .padding(.horizontal, Space.lg)
+                    .padding(.vertical, Space.sm)
+                    .frame(maxHeight: .infinity, alignment: .top)
+            } else {
+                ScrollView(.horizontal) {
+                    columnsRow
+                        .padding(.horizontal, Space.lg)
+                        .padding(.vertical, Space.sm)
+                        .frame(maxHeight: .infinity, alignment: .top)
                 }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 8)
-                .frame(maxHeight: .infinity, alignment: .top)
             }
             Text(L("board.hint"))
                 .font(.caption)
@@ -54,23 +55,23 @@ struct KanbanView: View {
                 }
                 .help(viewModel.isPanelShown ? L("panel.hide") : L("panel.show"))
                 .keyboardShortcut("i", modifiers: .command)
-                Button { viewModel.undo() } label: {
-                    Label(L("undo.button"), systemImage: "arrow.uturn.backward")
-                }
-                .disabled(viewModel.undoLabel == nil)
-                .help(viewModel.undoLabel.map { Lf("undo.undo", $0) + " (⌘Z)" } ?? L("undo.nothing"))
-                Button { viewModel.redo() } label: {
-                    Label(L("redo.button"), systemImage: "arrow.uturn.forward")
-                }
-                .disabled(viewModel.redoLabel == nil)
-                .help(viewModel.redoLabel.map { Lf("undo.redo", $0) + " (⇧⌘Z)" } ?? L("redo.nothing"))
-                filterMenu
-                sortMenu
+                viewMenu
             }
         }
     }
 
     // MARK: Pieces
+
+    private var columnsRow: some View {
+        HStack(alignment: .top, spacing: 14) {
+            ForEach(viewModel.columns) { column in
+                ColumnView(
+                    column: column, viewModel: viewModel, isAlone: viewModel.visibleStage != nil,
+                    onSelect: select, onOpen: open
+                )
+            }
+        }
+    }
 
     @ViewBuilder
     private var discardBanner: some View {
@@ -95,7 +96,7 @@ struct KanbanView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(viewModel.trackName)
-                .font(.heading(.largeTitle).weight(.bold))
+                .font(.screenTitle)
                 .foregroundStyle(Palette.ink)
             HStack(spacing: 10) {
                 ProgressBar(fraction: Double(viewModel.completedCount) / Double(max(viewModel.totalCount, 1)))
@@ -109,33 +110,26 @@ struct KanbanView: View {
         .padding(.bottom, 8)
     }
 
-    private var filterMenu: some View {
+    /// Filter and sort in one menu. Undo and redo live in the Board menu and on ⌘Z / ⇧⌘Z.
+    private var viewMenu: some View {
         Menu {
             Picker(L("board.filter"), selection: filterBinding) {
                 ForEach(KanbanFilter.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.inline)
-        } label: {
-            Label(
-                L("board.filter"),
-                systemImage: viewModel.filter == .all
-                    ? "line.3.horizontal.decrease.circle"
-                    : "line.3.horizontal.decrease.circle.fill"
-            )
-        }
-        .help(L("board.filter"))
-    }
-
-    private var sortMenu: some View {
-        Menu {
             Picker(L("board.sort"), selection: sortBinding) {
                 ForEach(KanbanSort.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.inline)
         } label: {
-            Label(L("board.sort"), systemImage: "arrow.up.arrow.down")
+            Label(
+                L("board.view"),
+                systemImage: viewModel.filter == .all
+                    ? "line.3.horizontal.decrease.circle"
+                    : "line.3.horizontal.decrease.circle.fill"
+            )
         }
-        .help(L("board.sort"))
+        .help(L("board.view"))
     }
 
     // MARK: Bindings
@@ -217,7 +211,12 @@ private struct ColumnView: View {
         VStack(alignment: .leading, spacing: 10) {
             header
             ScrollView {
-                LazyVStack(spacing: 10) {
+                LazyVGrid(
+                    columns: isAlone
+                        ? [GridItem(.adaptive(minimum: 300, maximum: 520), spacing: 10, alignment: .top)]
+                        : [GridItem(.flexible())],
+                    spacing: 10
+                ) {
                     ForEach(column.items) { item in
                         ItemCard(
                             item: item,
@@ -234,7 +233,7 @@ private struct ColumnView: View {
             .scrollIndicators(.hidden)
         }
         .padding(12)
-        .frame(minWidth: 292, idealWidth: isAlone ? 560 : 292, maxWidth: isAlone ? 720 : 292)
+        .frame(minWidth: 292, idealWidth: 292, maxWidth: isAlone ? .infinity : 292)
         .frame(maxHeight: .infinity, alignment: .top)
         .background(
             isTargeted ? Palette.accentLight : Palette.surfaceAlt,
@@ -273,7 +272,7 @@ private struct ColumnView: View {
             Spacer()
             // Shown only while a card is selected: it is the key that moves that card here, and next to
             // the count it would otherwise read as a second number.
-            if viewModel.selectedItemID != nil {
+            if viewModel.selectedItemID != nil, !isAlone {
                 KeyCap(label: "\(column.stage.shortcutDigit)")
                     .help(Lf("board.moveTo", column.stage.title))
             }

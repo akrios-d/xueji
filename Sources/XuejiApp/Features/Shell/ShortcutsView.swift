@@ -17,7 +17,9 @@ struct ShortcutsView: View {
     private var groups: [Group] {
         [
             Group(title: L("shortcuts.navigate"), rows: [
-                Row(keys: ["⌘1", "⌘2", "⌘3", "⌘4", "⌘5"], label: L("shortcuts.sections")),
+                Row(keys: ["⌘1", "…", "⌘9"], label: L("shortcuts.sections")),
+                Row(keys: ["⌥⌘1", "⌥⌘2", "⌥⌘3"], label: L("shortcuts.referenceTabs")),
+                Row(keys: ["⌥⌘P"], label: L("sidebar.prompts")),
                 Row(keys: ["⌘F"], label: L("shortcuts.search")),
                 Row(keys: ["⌘N"], label: L("card.new")),
                 Row(keys: ["⇧⌘I"], label: L("menu.importPDF")),
@@ -34,6 +36,10 @@ struct ShortcutsView: View {
                 Row(keys: ["T", "M", "W", "X"], label: L("shortcuts.dueDate")),
                 Row(keys: ["⌫"], label: L("board.discard")),
                 Row(keys: ["⌘Z", "⇧⌘Z"], label: L("shortcuts.undoRedo")),
+            ]),
+            Group(title: L("shortcuts.reader"), rows: [
+                Row(keys: ["⇧⌘H"], label: L("reader.highlight")),
+                Row(keys: ["⌥⌘L"], label: L("reader.marks.toggle")),
             ]),
             Group(title: L("shortcuts.calendar"), rows: [
                 Row(keys: ["←", "→", "↑", "↓"], label: L("shortcuts.day")),

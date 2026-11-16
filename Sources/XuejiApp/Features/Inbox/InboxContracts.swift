@@ -3,7 +3,7 @@ import XuejiCore
 
 /// The two tables a PDF can be imported as.
 enum ImportKind {
-    case sourceTriage, statements, quoteTriage
+    case sourceTriage, statements, evidenceReport
 }
 
 /// Which kind of card the Inbox shows.

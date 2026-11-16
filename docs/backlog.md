@@ -40,7 +40,7 @@ talk to the app yet, so the central loop (an external agent proposes, the studen
 
 ### C. Views and outputs
 13. **Table and timeline views** driven by fields ("who said what, and when" = Statements grouped by phase).
-14. **Progress module** (like CogNote's Insights): delivered on time or late, returned from review, reopened, rounds per card, time per stage, agent approval rate. Needs workflows (categories), richer event history (from → to, initial due day) and persistence.
+14. **Progress module** (first version done: see FR-92; the rest needs more history) (like CogNote's Insights): delivered on time or late, returned from review, reopened, rounds per card, time per stage, agent approval rate. Needs workflows (categories), richer event history (from → to, initial due day) and persistence.
 15. **Export**: triage table, "who said what" by period, reference list (Harvard by default); Markdown and PDF.
 16. **Reading order**: sort by role then phase first; a dependency graph only if the student asks for "A before B".
 

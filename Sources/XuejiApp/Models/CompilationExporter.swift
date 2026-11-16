@@ -50,12 +50,49 @@ enum CompilationExporter {
                 .paragraphStyle: style,
             ]))
         }
+        /// A body paragraph with its bold and italic; lists keep their marks and formulas keep their LaTeX.
+        func addMarkdown(_ text: String) {
+            let style = NSMutableParagraphStyle()
+            style.paragraphSpacing = 10
+            let manager = NSFontManager.shared
+            let line = NSMutableAttributedString()
+            for (index, part) in MarkdownBlocks.parts(of: text).enumerated() {
+                if index > 0 { line.append(NSAttributedString(string: "\n")) }
+                var source: [String]
+                switch part {
+                case .lines(let lines): source = lines
+                case .bullet(let text): source = ["•  " + text]
+                case .numbered(let number, let text): source = ["\(number).  " + text]
+                case .display(let math): source = ["$" + math + "$"]
+                }
+                for (row, text) in source.enumerated() {
+                    if row > 0 { line.append(NSAttributedString(string: "\n")) }
+                    for piece in MarkdownInline.pieces(text) {
+                        var font = NSFont.systemFont(ofSize: 12)
+                        var content = ""
+                        switch piece {
+                        case .text(let value, let bold, let italic):
+                            content = value
+                            if bold { font = manager.convert(font, toHaveTrait: .boldFontMask) }
+                            if italic { font = manager.convert(font, toHaveTrait: .italicFontMask) }
+                        case .math(let value):
+                            content = value
+                            font = NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
+                        }
+                        line.append(NSAttributedString(string: content, attributes: [.font: font]))
+                    }
+                }
+            }
+            line.append(NSAttributedString(string: "\n"))
+            line.addAttribute(.paragraphStyle, value: style, range: NSRange(location: 0, length: line.length))
+            result.append(line)
+        }
         for block in blocks {
             switch block {
             case .title(let text): add(text, size: 22, bold: true, centered: true, after: 18)
             case .contents: break
             case .heading(let level, let text): add(text, size: level == 1 ? 18 : level == 2 ? 15 : 13, bold: true, after: 8)
-            case .paragraph(let text): add(text, size: 12, bold: false, after: 10)
+            case .paragraph(let text): addMarkdown(text)
             case .reference(let text): add(text, size: 11, bold: false, indent: 24, after: 4)
             }
         }

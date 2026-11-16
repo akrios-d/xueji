@@ -452,6 +452,9 @@ struct WritingView: View {
                 Text(Lf("writing.counts", viewModel.wordCount(of: draft), viewModel.characterCount(of: draft)))
                     .font(.caption)
                     .foregroundStyle(Palette.ink3)
+                Image(systemName: "info.circle")
+                    .foregroundStyle(Palette.ink3)
+                    .help(L("writing.markdown.hint"))
                 Spacer()
                 Button(L("writing.delete"), role: .destructive) { viewModel.delete(draftID: draft.id) }
                     .buttonStyle(.bordered)

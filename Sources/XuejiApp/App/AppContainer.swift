@@ -12,7 +12,12 @@ final class AppContainer {
     let inbox: InboxViewModel
     let writing: WritingViewModel
     let compile: CompileViewModel
-    let triage: TriageViewModel
+    let progress: ProgressViewModel
+    let converter = ConverterViewModel()
+    let finder: FinderViewModel
+    let links = LinksViewModel()
+    let prompts = PromptsViewModel()
+    let evidence: EvidenceViewModel
     let projects: ProjectsViewModel
     let library: LibraryViewModel
     let reader: ReaderViewModel
@@ -53,7 +58,9 @@ final class AppContainer {
         inbox = InboxViewModel(store: store)
         writing = WritingViewModel(store: store)
         compile = CompileViewModel(store: store)
-        triage = TriageViewModel(store: store)
+        progress = ProgressViewModel(store: store)
+        finder = FinderViewModel(store: store)
+        evidence = EvidenceViewModel(store: store)
         projects = ProjectsViewModel(store: store)
         library = LibraryViewModel(store: store)
         let colors = ColorLibrary()
@@ -67,21 +74,29 @@ final class AppContainer {
         }
         settings = SettingsViewModel()
         inbox.showLibrary = { [shell] in shell.select(.library) }
-        inbox.showTriage = { [shell] in shell.select(.triage) }
+        inbox.showEvidence = { [shell] in shell.select(.evidence) }
         let readInApp: (UUID) -> Void = { [shell, reader] id in
             reader.open(itemID: id)
             shell.select(.reader)
         }
         library.readInApp = readInApp
         kanban.readInApp = readInApp
-        triage.readInApp = readInApp
+        evidence.readInApp = readInApp
+        evidence.readAt = { [shell, reader] id, page, term in
+            reader.open(itemID: id, page: page, search: term.isEmpty ? nil : term)
+            shell.select(.reader)
+        }
         cardPanel.readInApp = readInApp
-        reader.onClose = { [shell] in shell.select(.library) }
-        projects.didSwitch = { [shell, writing, triage] in
-            triage.refresh()
+        reader.onClose = { [shell] in shell.closeReader() }
+        projects.didSwitch = { [shell, writing, evidence] in
+            evidence.refresh()
             // A PDF open in the reader belongs to the project just left.
             if shell.selectedSection == .reader { shell.select(.library) }
             writing.select(draftID: nil)
+        }
+        progress.showDraft = { [shell, writing] id in
+            writing.select(draftID: id)
+            shell.select(.writing)
         }
         compile.showDraft = { [shell, writing] id in
             writing.select(draftID: id)

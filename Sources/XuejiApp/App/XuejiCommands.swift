@@ -6,6 +6,12 @@ struct XuejiCommands: Commands {
     let container: AppContainer
     @Environment(\.openWindow) private var openWindow
 
+    /// Opens the References screen on one of its tabs.
+    private func openReferences(_ tab: String) {
+        UserDefaults.standard.set(tab, forKey: "referencesTab")
+        container.shell.select(.references)
+    }
+
     var body: some Commands {
         // Replaces "New Window": a new card is what ⌘N should do here, from any section.
         CommandGroup(replacing: .newItem) {
@@ -35,9 +41,9 @@ struct XuejiCommands: Commands {
                 container.shell.select(.inbox)
                 container.inbox.requestImport(.statements)
             }
-            Button(L("menu.importQuoteTriage")) {
+            Button(L("menu.importEvidenceReport")) {
                 container.shell.select(.inbox)
-                container.inbox.requestImport(.quoteTriage)
+                container.inbox.requestImport(.evidenceReport)
             }
             Button(L("menu.addPDF")) {
                 container.shell.select(.inbox)
@@ -46,6 +52,7 @@ struct XuejiCommands: Commands {
             .keyboardShortcut("i", modifiers: [.command, .option, .shift])
         }
 
+        // ⌘1…⌘9 follow the sidebar from top to bottom.
         CommandMenu(L("menu.go")) {
             Button(L("sidebar.board")) { container.shell.select(.board) }
                 .keyboardShortcut("1", modifiers: .command)
@@ -53,14 +60,27 @@ struct XuejiCommands: Commands {
                 .keyboardShortcut("2", modifiers: .command)
             Button(L("sidebar.inbox")) { container.shell.select(.inbox) }
                 .keyboardShortcut("3", modifiers: .command)
-            Button(L("sidebar.writing")) { container.shell.select(.writing) }
-                .keyboardShortcut("4", modifiers: .command)
             Button(L("sidebar.library")) { container.shell.select(.library) }
+                .keyboardShortcut("4", modifiers: .command)
+            Button(L("sidebar.writing")) { container.shell.select(.writing) }
                 .keyboardShortcut("5", modifiers: .command)
             Button(L("sidebar.compile")) { container.shell.select(.compile) }
                 .keyboardShortcut("6", modifiers: .command)
-            Button(L("sidebar.triage")) { container.shell.select(.triage) }
+            Button(L("sidebar.references")) { container.shell.select(.references) }
                 .keyboardShortcut("7", modifiers: .command)
+            Button(L("sidebar.evidence")) { container.shell.select(.evidence) }
+                .keyboardShortcut("8", modifiers: .command)
+            Button(L("sidebar.progress")) { container.shell.select(.progress) }
+                .keyboardShortcut("9", modifiers: .command)
+            Divider()
+            Button(L("references.tab.find")) { openReferences("find") }
+                .keyboardShortcut("1", modifiers: [.command, .option])
+            Button(L("references.tab.convert")) { openReferences("convert") }
+                .keyboardShortcut("2", modifiers: [.command, .option])
+            Button(L("references.tab.links")) { openReferences("links") }
+                .keyboardShortcut("3", modifiers: [.command, .option])
+            Button(L("sidebar.prompts")) { container.shell.select(.prompts) }
+                .keyboardShortcut("p", modifiers: [.command, .option])
             Divider()
             ForEach(Stage.allCases, id: \.self) { stage in
                 Button(stage.title) { container.shell.select(.stage(stage)) }

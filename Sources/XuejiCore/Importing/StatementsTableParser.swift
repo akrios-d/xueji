@@ -72,9 +72,9 @@ enum StatementsTableParser {
                 case .references:
                     for line in TableLayout.lines(words) {
                         let text = line.map(\.text).joined(separator: " ")
-                        if let groups = ImportText.captures(#"^\[(\d+)\]\s*(.*)$"#, in: text), let number = Int(groups[0]) {
-                            referenceTexts[number] = groups[1]
-                            currentReference = number
+                        if let start = ReferenceParser.numberedStart(text) {
+                            referenceTexts[start.number] = start.text
+                            currentReference = start.number
                         } else if let number = currentReference {
                             let previous = referenceTexts[number] ?? ""
                             let lastToken = previous.split(separator: " ").last.map(String.init) ?? ""

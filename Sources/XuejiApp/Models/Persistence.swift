@@ -16,10 +16,10 @@ enum Persistence {
         var compilation: Compilation?
         /// One per project.
         var compilations: [UUID: Compilation]?
-        /// One per project; absent in files written before the Triage screen existed.
-        var triages: [UUID: Triage]?
+        /// One per project; absent in files written before the Evidence screen existed.
+        var triages: [UUID: EvidenceSet]?
         /// Several per project (replaces `triages`).
-        var triageSets: [UUID: [Triage]]?
+        var triageSets: [UUID: [EvidenceSet]]?
     }
 
     enum Loaded {

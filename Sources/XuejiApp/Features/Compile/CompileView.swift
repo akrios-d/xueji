@@ -249,7 +249,7 @@ struct CompileView: View {
                 .foregroundStyle(Palette.ink)
                 .padding(.top, level == 1 ? 14 : 6)
         case .paragraph(let text):
-            Text(text).font(.body).foregroundStyle(Palette.ink).lineSpacing(4)
+            Text(MarkdownPreview.attributed(text)).font(.body).foregroundStyle(Palette.ink).lineSpacing(4)
         case .reference(let text):
             Text(text).font(.callout).foregroundStyle(Palette.ink2)
                 .padding(.leading, 20)

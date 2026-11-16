@@ -5,7 +5,7 @@ enum AppSection: Hashable {
     case board
     /// The board narrowed to one stage, for direct access from the sidebar.
     case stage(Stage)
-    case calendar, inbox, writing, compile, triage, library
+    case calendar, inbox, writing, compile, evidence, library, progress, references, prompts
     /// Reading a PDF from the library; the sidebar keeps "Library" selected.
     case reader
 }
@@ -22,6 +22,8 @@ protocol IShellView {
 /// What the app shell may trigger.
 protocol IShellController {
     func select(_ section: AppSection)
+    /// Leaves the reader for the screen it was opened from (the Library when there is none).
+    func closeReader()
     func dismissError()
 }
 

@@ -254,7 +254,7 @@ final class WorkspaceImportTests: XCTestCase {
     func testImportedSourcesWaitForApprovalInDocumentOrder() throws {
         var f = try ImportFixture()
         let document = try PDFImporter.parse(triagePages())
-        let summary = try f.ws.importDocument(document, trackID: f.track.id, by: f.human.id, fileName: "triage.pdf", at: t0)
+        let summary = try f.ws.importDocument(document, trackID: f.track.id, by: f.human.id, fileName: "evidence.pdf", at: t0)
 
         XCTAssertEqual(summary.sourcesAdded, 3)
         let pending = f.ws.pendingApprovals()
@@ -275,6 +275,29 @@ final class WorkspaceImportTests: XCTestCase {
         XCTAssertEqual(again.sourcesAdded, 0)
         XCTAssertEqual(again.skippedDuplicates, 3)
         XCTAssertEqual(f.ws.items.count, 3)
+    }
+
+    func testAlreadyThereCountsTheOnesStillWaitingForApproval() throws {
+        var f = try ImportFixture()
+        let document = try PDFImporter.parse(triagePages())
+        try f.ws.importDocument(document, trackID: f.track.id, by: f.human.id, fileName: "a.pdf", at: t0)
+        let first = f.ws.pendingApprovals()[0]
+        _ = try f.ws.approve(itemID: first.id, by: f.human.id, at: t0)
+        let again = try f.ws.importDocument(document, trackID: f.track.id, by: f.human.id, fileName: "a.pdf", at: t0)
+        XCTAssertEqual(again.skippedDuplicates, 3)
+        XCTAssertEqual(again.skippedPending, 2)
+    }
+
+    func testADiscardedSourceComesBackWhenImportedAgain() throws {
+        var f = try ImportFixture()
+        let document = try PDFImporter.parse(triagePages())
+        try f.ws.importDocument(document, trackID: f.track.id, by: f.human.id, fileName: "a.pdf", at: t0)
+        let first = f.ws.pendingApprovals()[0]
+        _ = try f.ws.reject(itemID: first.id, by: f.human.id, at: t0)
+        let again = try f.ws.importDocument(document, trackID: f.track.id, by: f.human.id, fileName: "a.pdf", at: t0)
+        XCTAssertEqual(again.sourcesAdded, 1)
+        XCTAssertEqual(again.skippedDuplicates, 2)
+        XCTAssertEqual(f.ws.pendingApprovals().filter { $0.title == first.title }.count, 1)
     }
 
     func testStatementsAreLinkedToTheSourcesOfTheirReferences() throws {

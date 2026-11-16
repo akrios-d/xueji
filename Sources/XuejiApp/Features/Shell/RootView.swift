@@ -4,6 +4,8 @@ import XuejiCore
 struct RootView: View {
     let container: AppContainer
 
+    /// The stages repeat the board's columns, so they start folded to keep the sidebar short.
+
     private var shell: any IShellViewModel { container.shell }
     private var settings: any ISettingsViewModel { container.settings }
 
@@ -39,9 +41,20 @@ struct RootView: View {
         Binding(get: { settings.theme }, set: { settings.setTheme($0) })
     }
 
+    /// A group title in the sidebar. A plain row, so it cannot be folded away.
+    private func sidebarHeader(_ key: String) -> some View {
+        Text(L(key))
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .padding(.top, 10)
+            .selectionDisabled()
+            .listRowSeparator(.hidden)
+    }
+
     private var sidebar: some View {
         List(selection: sectionBinding) {
-            Section(L("sidebar.workspace")) {
+            Group {
+                sidebarHeader("sidebar.group.plan")
                 Label(L("sidebar.board"), systemImage: "rectangle.split.3x1")
                     .tag(AppSection.board)
                 Label(L("sidebar.calendar"), systemImage: "calendar")
@@ -51,16 +64,32 @@ struct RootView: View {
                 Label(L("sidebar.inbox"), systemImage: "tray")
                     .badge(shell.pendingApprovalCount)
                     .tag(AppSection.inbox)
+            }
+            Group {
+                sidebarHeader("sidebar.group.work")
                 Label(L("sidebar.library"), systemImage: "books.vertical")
                     .tag(AppSection.library)
                 Label(L("sidebar.writing"), systemImage: "square.and.pencil")
                     .tag(AppSection.writing)
                 Label(L("sidebar.compile"), systemImage: "text.book.closed")
                     .tag(AppSection.compile)
-                Label(L("sidebar.triage"), systemImage: "quote.bubble")
-                    .tag(AppSection.triage)
+                Label(L("sidebar.references"), systemImage: "text.quote")
+                    .tag(AppSection.references)
             }
-            Section(L("sidebar.stages")) {
+            Group {
+                sidebarHeader("sidebar.group.analyse")
+                Label(L("sidebar.evidence"), systemImage: "quote.bubble")
+                    .tag(AppSection.evidence)
+                Label(L("sidebar.progress"), systemImage: "chart.bar")
+                    .tag(AppSection.progress)
+            }
+            Group {
+                sidebarHeader("sidebar.group.help")
+                Label(L("sidebar.prompts"), systemImage: "sparkles")
+                    .tag(AppSection.prompts)
+            }
+            Group {
+                sidebarHeader("sidebar.stages")
                 ForEach(Stage.allCases, id: \.self) { stage in
                     Label(stage.title, systemImage: stage.symbol)
                         .badge(shell.cardCount(in: stage))
@@ -118,7 +147,11 @@ struct RootView: View {
         case .stage(let stage): KanbanView(viewModel: container.kanban, panel: container.cardPanel, stage: stage)
         case .writing: WritingView(viewModel: container.writing)
         case .compile: CompileView(viewModel: container.compile)
-        case .triage: TriageView(viewModel: container.triage)
+        case .evidence: EvidenceView(viewModel: container.evidence)
+        case .progress: ProgressOverviewView(viewModel: container.progress)
+        case .prompts: PromptsView(viewModel: container.prompts)
+        case .references:
+            ReferencesView(finder: container.finder, converter: container.converter, links: container.links)
         case .library: LibraryView(viewModel: container.library)
         case .reader: ReaderView(viewModel: container.reader)
         case .calendar: CalendarView(viewModel: container.calendar)

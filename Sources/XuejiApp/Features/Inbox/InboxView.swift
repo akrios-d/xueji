@@ -108,11 +108,6 @@ struct InboxView: View {
                     Button(L("card.new")) { newCard.present() }
                     Divider()
                     Button(L("inbox.import.auto")) { viewModel.requestImport(nil) }
-                    Button(L("inbox.import.triage")) { viewModel.requestImport(.sourceTriage) }
-                    Button(L("inbox.import.statements")) { viewModel.requestImport(.statements) }
-                    Button(L("inbox.import.quoteTriage")) { viewModel.requestImport(.quoteTriage) }
-                    Divider()
-                    Button(L("inbox.addPDF")) { viewModel.requestAddPDF() }
                 } label: {
                     Label(L("inbox.add"), systemImage: "plus")
                 }
@@ -165,18 +160,6 @@ struct InboxView: View {
             VStack(spacing: 8) {
                 importOption(L("inbox.import.auto"), detail: L("inbox.import.auto.detail"), symbol: "wand.and.stars") {
                     viewModel.requestImport(nil)
-                }
-                importOption(L("inbox.import.triage"), detail: L("inbox.import.triage.detail"), symbol: "list.number") {
-                    viewModel.requestImport(.sourceTriage)
-                }
-                importOption(L("inbox.import.statements"), detail: L("inbox.import.statements.detail"), symbol: "quote.bubble") {
-                    viewModel.requestImport(.statements)
-                }
-                importOption(L("inbox.import.quoteTriage"), detail: L("inbox.import.quoteTriage.detail"), symbol: "text.quote") {
-                    viewModel.requestImport(.quoteTriage)
-                }
-                importOption(L("inbox.addPDF"), detail: L("inbox.addPDF.detail"), symbol: "books.vertical") {
-                    viewModel.requestAddPDF()
                 }
             }
             .frame(maxWidth: 460)

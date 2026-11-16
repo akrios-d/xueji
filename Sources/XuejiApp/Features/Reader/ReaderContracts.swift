@@ -14,6 +14,8 @@ struct ReaderMark: Identifiable, Equatable {
     /// "RRGGBB"
     let colorHex: String
     let pageLabel: String
+    /// Zero-based position of the page in the file, to match the marks with the pages on screen.
+    let pageIndex: Int
     let quote: String
     let note: String
 }
@@ -37,12 +39,26 @@ protocol IReaderView {
     var message: String? { get }
     /// Drafts a quote can be added to.
     var drafts: [Draft] { get }
+    /// When on, the list of highlights moves along with the PDF as the student scrolls.
+    var followScroll: Bool { get }
+    /// Zero-based indexes of the pages that are on screen now.
+    var visiblePages: Set<Int> { get }
+    /// The mark the list should show at its top while following the scroll.
+    var focusedMarkID: String? { get }
+    /// What the student typed to find a highlight or a note in the list.
+    var markQuery: String { get }
+    /// The marks that match `markQuery` (all of them when it is empty), in reading order.
+    var shownMarks: [ReaderMark] { get }
 }
 
 /// What the reader screen may trigger.
 protocol IReaderController {
     /// Gives the model the PDF view, to read its selection and move it.
     func attach(_ view: PDFView)
+    /// The PDF was scrolled (or zoomed): which pages are on screen now.
+    func visiblePagesChanged(_ pages: [Int])
+    func setFollowScroll(_ follow: Bool)
+    func setMarkQuery(_ text: String)
     func selectionChanged(hasSelection: Bool)
     func selectVersion(id: UUID)
     /// A copy of the current version for a topic; with or without its highlights.

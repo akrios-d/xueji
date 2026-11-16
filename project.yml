@@ -1,5 +1,6 @@
-# Generates Xueji.xcodeproj (run `xcodegen generate`). The project is a build artifact: do not edit or commit it.
-# Change targets, settings and permissions here.
+# Generates Xueji.xcodeproj (run `xcodegen generate`). The generated project and Xcode/Info.plist are committed
+# so the app opens in Xcode without XcodeGen. Do not edit them by hand: change targets, settings and
+# permissions here, run `xcodegen generate` and commit the result.
 name: Xueji
 options:
   bundleIdPrefix: dev.xueji   # TODO: replace with your own reverse-DNS prefix

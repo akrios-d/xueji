@@ -56,12 +56,12 @@ enum HighlightImporter {
                 note(hex)
             }
             var seen: Set<String> = []
-            let fills = index < flat.count ? flat[index] : []
-            for fill in fills {
-                let key = "\(fill.rect)-\(fill.hex)"
-                guard seen.insert(key).inserted else { continue }
-                addHighlight(on: page, rect: fill.rect, hex: fill.hex)
-                note(fill.hex)
+            let fills = (index < flat.count ? flat[index] : []).filter { seen.insert("\($0.rect)-\($0.hex)").inserted }
+            // A painted highlight is one rectangle per line; the lines of one passage become one mark.
+            for block in blocks(of: fills, on: page) {
+                let group = UUID().uuidString
+                for fill in block { addHighlight(on: page, rect: fill.rect, hex: fill.hex, group: group) }
+                note(block[0].hex)
             }
         }
         result.leftPainted = !removed
@@ -110,10 +110,57 @@ enum HighlightImporter {
 
     // MARK: Flattened highlights
 
-    private static func addHighlight(on page: PDFPage, rect: CGRect, hex: String) {
+    /// Painted rectangles of one colour that are the lines of one passage, top to bottom. Line B continues line A
+    /// (the one above it) only when A runs to the end of its text line and B starts at the beginning of its own:
+    /// two highlights in the middle of two neighbouring lines are two highlights, not one.
+    static func blocks(of fills: [FlatHighlight], on page: PDFPage) -> [[FlatHighlight]] {
+        var parent = Array(0..<fills.count)
+        func root(_ i: Int) -> Int {
+            var i = i
+            while parent[i] != i { parent[i] = parent[parent[i]]; i = parent[i] }
+            return i
+        }
+        for i in fills.indices {
+            for j in fills.indices where j > i && fills[i].hex == fills[j].hex {
+                let (upper, lower) = fills[i].rect.maxY >= fills[j].rect.maxY ? (fills[i].rect, fills[j].rect) : (fills[j].rect, fills[i].rect)
+                let height = min(upper.height, lower.height)
+                let gap = upper.minY - lower.maxY
+                guard gap <= height * 0.6, gap >= -height else { continue }
+                if endsTextLine(upper, on: page) && startsTextLine(lower, on: page) { parent[root(i)] = root(j) }
+            }
+        }
+        var groups: [Int: [FlatHighlight]] = [:]
+        for i in fills.indices { groups[root(i), default: []].append(fills[i]) }
+        return groups.values
+            .map { $0.sorted { $0.rect.maxY > $1.rect.maxY || ($0.rect.maxY == $1.rect.maxY && $0.rect.minX < $1.rect.minX) } }
+            .sorted { $0[0].rect.maxY > $1[0].rect.maxY }
+    }
+
+    /// Whether there is no text on the same line right after the rectangle.
+    private static func endsTextLine(_ rect: CGRect, on page: PDFPage) -> Bool {
+        let probe = CGRect(x: rect.maxX + rect.height * 0.3, y: rect.midY - rect.height * 0.15, width: rect.height * 1.5, height: rect.height * 0.3)
+        return !hasText(in: probe, on: page)
+    }
+
+    /// Whether there is no text on the same line right before the rectangle.
+    private static func startsTextLine(_ rect: CGRect, on page: PDFPage) -> Bool {
+        let width = rect.height * 1.5
+        let probe = CGRect(x: rect.minX - rect.height * 0.3 - width, y: rect.midY - rect.height * 0.15, width: width, height: rect.height * 0.3)
+        return !hasText(in: probe, on: page)
+    }
+
+    private static func hasText(in rect: CGRect, on page: PDFPage) -> Bool {
+        let box = page.bounds(for: .mediaBox)
+        let inside = rect.intersection(box)
+        guard !inside.isNull, inside.width > 0 else { return false }
+        let text = page.selection(for: inside)?.string ?? ""
+        return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private static func addHighlight(on page: PDFPage, rect: CGRect, hex: String, group: String) {
         guard let base = NSColor(hex: hex) else { return }
         let mark = makeMark(rect: rect, kind: .highlight, color: base.withAlphaComponent(0.45))
-        mark.userName = "\(ReadingFiles.markPrefix)\(UUID().uuidString):\(MarkKind.highlight.rawValue):\(hex)"
+        mark.userName = "\(ReadingFiles.markPrefix)\(group):\(MarkKind.highlight.rawValue):\(hex)"
         page.addAnnotation(mark)
     }
 

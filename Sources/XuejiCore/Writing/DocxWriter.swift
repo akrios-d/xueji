@@ -24,7 +24,7 @@ public enum DocxWriter {
             case .heading(let level, let text):
                 body += paragraph(text, style: "Heading\(min(max(level, 1), 3))")
             case .paragraph(let text):
-                body += paragraph(text, style: nil)
+                body += markdownParagraph(text)
             case .reference(let text):
                 body += paragraph(text, style: "Bibliography")
             case .contents(let title, let hint):
@@ -36,8 +36,44 @@ public enum DocxWriter {
         }
         return """
         <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-        <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>\(body)<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>
+        <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><w:body>\(body)<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>
         """
+    }
+
+    // MARK: Light Markdown
+
+    /// A body paragraph of the draft: bold, italic, lists and formulas written in light Markdown become Word formatting.
+    static func markdownParagraph(_ text: String) -> String {
+        var xml = ""
+        for part in MarkdownBlocks.parts(of: text) {
+            switch part {
+            case .lines(let lines):
+                xml += "<w:p>" + lines.map(runs).joined(separator: "<w:r><w:br/></w:r>") + "</w:p>"
+            case .bullet(let line):
+                xml += "<w:p>\(listProperties)<w:r><w:t>•</w:t></w:r><w:r><w:tab/></w:r>\(runs(line))</w:p>"
+            case .numbered(let number, let line):
+                xml += "<w:p>\(listProperties)<w:r><w:t>\(number).</w:t></w:r><w:r><w:tab/></w:r>\(runs(line))</w:p>"
+            case .display(let source):
+                xml += "<w:p><w:pPr><w:jc w:val=\"center\"/></w:pPr><m:oMathPara><m:oMath>\(LatexMath.omml(source))</m:oMath></m:oMathPara></w:p>"
+            }
+        }
+        return xml
+    }
+
+    private static let listProperties = "<w:pPr><w:spacing w:after=\"60\"/><w:ind w:left=\"720\" w:hanging=\"360\"/></w:pPr>"
+
+    /// The runs of one line: text with its bold and italic, and formulas inline.
+    static func runs(_ line: String) -> String {
+        MarkdownInline.pieces(line).map { piece in
+            switch piece {
+            case .text(let text, let bold, let italic):
+                let properties = (bold ? "<w:b/><w:bCs/>" : "") + (italic ? "<w:i/><w:iCs/>" : "")
+                let rPr = properties.isEmpty ? "" : "<w:rPr>\(properties)</w:rPr>"
+                return "<w:r>\(rPr)<w:t xml:space=\"preserve\">\(escape(text))</w:t></w:r>"
+            case .math(let source):
+                return "<m:oMath>\(LatexMath.omml(source))</m:oMath>"
+            }
+        }.joined()
     }
 
     /// One paragraph; a line break inside the text stays a line break.

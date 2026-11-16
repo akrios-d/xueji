@@ -76,8 +76,28 @@ public struct ImportedReference: Equatable, Sendable {
     public var venue: String
     public var doi: String
     public var url: URL?
+    /// journalArticle, book, bookChapter or webPage when it can be told; empty otherwise.
+    public var kind: String
+    public var volume: String
+    public var issue: String
+    public var pages: String
+    /// "2024-07-01".
+    public var accessed: String
+    public var publisher: String
+    public var date: String
 
-    public init(number: Int, authors: String = "", year: Int? = nil, title: String, venue: String = "", doi: String = "", url: URL? = nil) {
+    public init(
+        number: Int, authors: String = "", year: Int? = nil, title: String, venue: String = "", doi: String = "", url: URL? = nil,
+        kind: String = "", volume: String = "", issue: String = "", pages: String = "", accessed: String = "",
+        publisher: String = "", date: String = ""
+    ) {
+        self.kind = kind
+        self.volume = volume
+        self.issue = issue
+        self.pages = pages
+        self.accessed = accessed
+        self.publisher = publisher
+        self.date = date
         self.number = number
         self.authors = authors
         self.year = year
@@ -85,6 +105,15 @@ public struct ImportedReference: Equatable, Sendable {
         self.venue = venue
         self.doi = doi
         self.url = url
+    }
+
+    /// The venue followed by volume, issue and pages, for a card that has no fields for them.
+    public var venueWithDetails: String {
+        var detail = ""
+        if !volume.isEmpty { detail = volume + (issue.isEmpty ? "" : "(\(issue))") } else if !issue.isEmpty { detail = "no. " + issue }
+        if !pages.isEmpty { detail += (detail.isEmpty ? "" : ", ") + "pp. " + pages }
+        if detail.isEmpty || venue.isEmpty { return venue.isEmpty ? detail : venue }
+        return venue + ", " + detail
     }
 }
 
@@ -130,6 +159,8 @@ public struct ImportSummary: Equatable, Sendable {
     public var statementsAdded = 0
     /// Rows that were already in the track.
     public var skippedDuplicates = 0
+    /// Of those, the ones that are still waiting for the student's approval in the Inbox (so not on the other screens yet).
+    public var skippedPending = 0
     /// Source rows whose link could not be read.
     public var skippedWithoutLink = 0
 

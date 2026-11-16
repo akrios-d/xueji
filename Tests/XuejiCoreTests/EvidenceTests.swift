@@ -1,7 +1,7 @@
 import XCTest
 @testable import XuejiCore
 
-final class TriageTests: XCTestCase {
+final class EvidenceTests: XCTestCase {
     func testWholeWordsOnly() {
         let text = "Security matters. The security council, SECURITY, and securitisation. Insecurity is not security's twin."
         // "Security", "security", "SECURITY" and "security's" count; "securitisation" and "Insecurity" do not.
@@ -54,5 +54,15 @@ final class TriageTests: XCTestCase {
     func testReportPlainText() {
         let text = ReportBlock.plainText([.heading("1. Counts"), .table(columns: [ReportColumn("Doc"), ReportColumn("n")], rows: [["A", "5"]])])
         XCTAssertEqual(text, "1. Counts\n\nDoc\tn\nA\t5")
+    }
+
+    func testMatchesGiveContextAndAgreeWithCount() {
+        let text = "The conservative party met.\nA Conservative MP spoke. Conservatives are not counted."
+        let found = TermCounter.matches("conservative", in: text, context: 10)
+        XCTAssertEqual(found.count, TermCounter.count("conservative", in: text))
+        XCTAssertEqual(found.first?.text, "conservative")
+        XCTAssertEqual(found.first?.before, "The ")
+        XCTAssertTrue(found.first?.after.hasPrefix(" party") == true)
+        XCTAssertEqual(found.last?.text, "Conservative")
     }
 }

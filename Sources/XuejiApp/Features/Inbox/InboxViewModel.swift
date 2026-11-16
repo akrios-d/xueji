@@ -12,8 +12,8 @@ final class InboxViewModel: IInboxView, IInboxController {
     private var importKind: ImportKind?
 
     /// Wired by the composition root: takes the user to the Library after a PDF was added.
+    var showEvidence: () -> Void = {}
     var showLibrary: () -> Void = {}
-    var showTriage: () -> Void = {}
 
     init(store: AppStore) { self.store = store }
 
@@ -139,19 +139,23 @@ final class InboxViewModel: IInboxView, IInboxController {
             let summary = result.summary
             switch result.kind {
             case .sourceTriage:
-                store.announce(Lf("inbox.import.result.triage", summary.sourcesAdded, summary.skipped))
+                if summary.skippedPending > 0 {
+                    store.announce(Lf("inbox.import.result.triage.pending", summary.sourcesAdded, summary.skipped, summary.skippedPending))
+                } else {
+                    store.announce(Lf("inbox.import.result.triage", summary.sourcesAdded, summary.skipped))
+                }
             case .statements:
                 store.announce(Lf("inbox.import.result.statements", summary.statementsAdded, summary.sourcesAdded, summary.skipped))
-            case .quoteTriage:
+            case .evidenceReport:
                 break
             }
             moveSelection(by: 0)
         case .addedToLibrary(let id):
             store.focus(id)
             showLibrary()
-        case .triage(let summary):
-            store.announce(Lf("inbox.import.result.quoteTriage", summary.documents + summary.linked, summary.quotes, summary.events))
-            showTriage()
+        case .evidence(let summary):
+            store.announce(Lf("evidence.import.result", summary.documents + summary.linked, summary.quotes, summary.periods, summary.events))
+            showEvidence()
         case .failed:
             break
         }

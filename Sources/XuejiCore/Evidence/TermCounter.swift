@@ -25,6 +25,42 @@ public enum TermCounter {
         return count(lead + " " + word, in: text)
     }
 
+    /// One place where the term appears, with the words around it.
+    public struct Match: Equatable, Sendable {
+        public let before: String
+        public let text: String
+        public let after: String
+        /// The words before were cut: the context starts in the middle of the text.
+        public let cutBefore: Bool
+        public let cutAfter: Bool
+    }
+
+    /// The places where `term` appears, in reading order, each with some context on both sides.
+    /// Uses the same rule as `count`, so the list and the number agree.
+    public static func matches(_ term: String, in text: String, context: Int = 70, limit: Int = 500) -> [Match] {
+        guard let expression = phraseExpression(term) else { return [] }
+        let source = prepared(text) as NSString
+        var result: [Match] = []
+        expression.enumerateMatches(in: source as String, range: NSRange(location: 0, length: source.length)) { found, _, stop in
+            guard let range = found?.range else { return }
+            let start = max(0, range.location - context)
+            let end = min(source.length, range.location + range.length + context)
+            result.append(Match(
+                before: flatten(source.substring(with: NSRange(location: start, length: range.location - start))),
+                text: flatten(source.substring(with: range)),
+                after: flatten(source.substring(with: NSRange(location: range.location + range.length, length: end - range.location - range.length))),
+                cutBefore: start > 0,
+                cutAfter: end < source.length
+            ))
+            if result.count >= limit { stop.pointee = true }
+        }
+        return result
+    }
+
+    private static func flatten(_ text: String) -> String {
+        text.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+    }
+
     /// Occurrences per 1,000 words, rounded to two decimals.
     public static func perThousand(_ count: Int, words: Int) -> Double {
         guard words > 0 else { return 0 }

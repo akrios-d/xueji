@@ -53,7 +53,7 @@ Same system as the web app and CogNote: warm off-white background, terracotta ac
 
 ## Xcode project
 
-The app also builds as a real macOS app (icon in Finder and the Dock, bundle identifier, permissions). The project is generated from `project.yml`:
+The app also builds as a real macOS app (icon in Finder and the Dock, bundle identifier, permissions). The project is generated from `project.yml`, and the generated `Xueji.xcodeproj` is committed, so on another Mac you can just open it (step 3). Regenerate it only after changing `project.yml`, and commit the result:
 
 1. `brew install xcodegen`
 2. `xcodegen generate` (in the project folder)

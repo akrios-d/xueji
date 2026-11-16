@@ -1,7 +1,7 @@
 import XCTest
 @testable import XuejiCore
 
-final class QuoteTriageParserTests: XCTestCase {
+final class EvidenceReportParserTests: XCTestCase {
     /// One line of words: (x, text) pairs at a given top.
     private func line(_ top: Double, _ items: [(Double, String)]) -> [ImportWord] {
         items.map { ImportWord(x0: $0.0, x1: $0.0 + Double($0.1.count) * 6, top: top, bottom: top + 10, text: $0.1) }
@@ -43,7 +43,7 @@ final class QuoteTriageParserTests: XCTestCase {
     }
 
     func testReadsAllSections() throws {
-        let report = try XCTUnwrap(ImportedQuoteTriage.parse([page]))
+        let report = try XCTUnwrap(ImportedEvidenceReport.parse([page]))
         XCTAssertEqual(report.title, "Quote Triage")
         XCTAssertEqual(report.term, "security")
         XCTAssertEqual(report.documents.map(\.title), ["Report", "Hearing"])
@@ -66,8 +66,44 @@ final class QuoteTriageParserTests: XCTestCase {
         XCTAssertEqual(report.findings, ["First finding.", "Second one. More"])
     }
 
+    /// A report whose timeline comes with a table of periods, and whose events name their period and their quote.
+    private var pageWithPeriods: ImportPage {
+        var words: [ImportWord] = []
+        words += line(10, [(40, "Report")])
+        words += line(30, [(40, "Search"), (80, "term:"), (120, "security"), (180, "(2"), (200, "documents)")])
+        words += line(100, [(40, "2."), (60, "Strongest")])
+        words += line(130, [(40, "#"), (70, "Quote"), (300, "Speaker"), (350, "/"), (360, "locator"), (420, "Class"), (500, "Why")])
+        words += line(150, [(40, "1"), (70, "“Alpha”"), (300, "Kate"), (420, "ESSENTIAL"), (500, "Strong")])
+        words += line(170, [(40, "2"), (70, "“Beta”"), (300, "Chair"), (420, "SUPPORTING"), (500, "Fine")])
+        words += line(210, [(40, "3."), (60, "Timeline")])
+        words += line(240, [(40, "Period"), (200, "From"), (260, "Until"), (320, "Inside"), (420, "Quotes")])
+        words += line(260, [(40, "Expansion"), (200, "2019"), (260, "2023"), (420, "1,"), (435, "2")])
+        words += line(280, [(40, "Boom"), (200, "2020"), (260, "2021"), (320, "Expansion"), (420, "2")])
+        words += line(320, [(40, "Date"), (110, "Event"), (250, "Who"), (340, "What"), (430, "Period"), (500, "Quote"), (540, "#")])
+        words += line(340, [(40, "2019"), (110, "Report"), (250, "Commission"), (340, "Framed"), (430, "Expansion"), (500, "1")])
+        words += line(360, [(40, "2020"), (110, "Hearing"), (250, "Chair"), (340, "Frame"), (430, "Boom"), (500, "2")])
+        words += line(380, [(40, "Mar"), (60, "2022"), (110, "Missing"), (250, "Nobody"), (340, "None"), (430, "Expansion"), (500, "—")])
+        return ImportPage(height: 800, words: words)
+    }
+
+    func testReadsPeriodsAndTheLinksOfTheTimeline() throws {
+        let report = try XCTUnwrap(ImportedEvidenceReport.parse([pageWithPeriods]))
+        XCTAssertEqual(report.quotes.map(\.number), [1, 2])
+        XCTAssertEqual(report.periods.map(\.name), ["Expansion", "Boom"])
+        XCTAssertEqual(report.periods[0].from, "2019")
+        XCTAssertEqual(report.periods[0].until, "2023")
+        XCTAssertEqual(report.periods[0].parent, "")
+        XCTAssertEqual(report.periods[0].quotes, [1, 2])
+        XCTAssertEqual(report.periods[1].parent, "Expansion")
+        XCTAssertEqual(report.periods[1].quotes, [2])
+        XCTAssertEqual(report.events.count, 3)
+        XCTAssertEqual(report.events.map(\.period), ["Expansion", "Boom", "Expansion"])
+        XCTAssertEqual(report.events.map(\.quoteNumber), [1, 2, nil])
+        XCTAssertEqual(report.events.map(\.isGap), [false, false, true])
+    }
+
     func testOtherPdfIsNotAReport() {
         let words = line(30, [(40, "Just"), (80, "some"), (120, "text")])
-        XCTAssertNil(ImportedQuoteTriage.parse([ImportPage(height: 800, words: words)]))
+        XCTAssertNil(ImportedEvidenceReport.parse([ImportPage(height: 800, words: words)]))
     }
 }

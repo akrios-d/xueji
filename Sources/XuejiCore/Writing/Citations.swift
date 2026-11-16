@@ -12,9 +12,12 @@ public enum CitationStyle: String, Codable, CaseIterable, Sendable, Identifiable
     case abnt
     /// Numbered in order of first citation, "[1, p. 12]".
     case ieee
+    /// The official model of the journal notes: a numbered list ("1. 作者：《标题》，载《期刊》，2020 年第 7期，第 25-34 页。"),
+    /// Chinese and English entries each in their own form.
+    case official
 
     public var id: String { rawValue }
-    public var isNumbered: Bool { self == .ieee || self == .gbt7714 }
+    public var isNumbered: Bool { self == .ieee || self == .gbt7714 || self == .official }
 }
 
 public struct Person: Equatable, Sendable {
@@ -36,11 +39,30 @@ public struct Reference: Equatable, Sendable, Identifiable {
     /// The key of the card's "kind of source" (journalArticle, book, press…); may be empty.
     public var kind: String
     public var created: Date
+    /// Details that only some kinds of source have. All are optional and empty when unknown.
+    public var volume: String
+    public var issue: String
+    /// "25-34".
+    public var pages: String
+    /// The day the page was visited, "2024-07-01".
+    public var accessed: String
+    /// For a chapter: the publisher of the book it is in (the book itself goes in `venue`).
+    public var publisher: String
+    /// The date as written when it is more than a year ("December 2021").
+    public var date: String
 
     public init(
         id: UUID, authors: String = "", year: Int? = nil, title: String = "", venue: String = "",
-        doi: String = "", url: String = "", kind: String = "", created: Date = Date(timeIntervalSince1970: 0)
+        doi: String = "", url: String = "", kind: String = "", created: Date = Date(timeIntervalSince1970: 0),
+        volume: String = "", issue: String = "", pages: String = "", accessed: String = "",
+        publisher: String = "", date: String = ""
     ) {
+        self.volume = volume
+        self.issue = issue
+        self.pages = pages
+        self.accessed = accessed
+        self.publisher = publisher
+        self.date = date
         self.id = id
         self.authors = authors
         self.year = year
@@ -277,7 +299,7 @@ public enum Citations {
             let body = entry(reference, style: style, letter: letters[id] ?? "")
             let number = numbers[id]
             entries.append(BibliographyEntry(
-                id: id, number: number, text: number.map { "[\($0)] " + body } ?? body
+                id: id, number: number, text: number.map { numberPrefix(style, $0) + body } ?? body
             ))
             var missing: [String] = []
             if Authors.parse(reference.authors).people.isEmpty { missing.append("authors") }
@@ -286,6 +308,11 @@ public enum Citations {
             if !missing.isEmpty { incomplete.append(IncompleteReference(id: id, missing: missing)) }
         }
         return CitationOutput(texts: outputTexts, bibliography: entries, unknownKeys: unknown, incomplete: incomplete)
+    }
+
+    /// "[1] " in the bracket styles, "1. " in the official model.
+    private static func numberPrefix(_ style: CitationStyle, _ number: Int) -> String {
+        style == .official ? "\(number). " : "[\(number)] "
     }
 
     private struct MarkerMatch {
@@ -412,6 +439,7 @@ public enum Citations {
         switch kind {
         case "journalArticle": return "J"
         case "book": return "M"
+        case "bookChapter": return "M"
         case "thinkTankReport", "governmentDocument", "poll": return "R"
         case "press": return "N"
         case "webPage": return "EB/OL"
@@ -452,7 +480,7 @@ public enum Citations {
             if upper.isEmpty { names = shortTitle(reference.title).uppercased() }
             else if upper.count > 3 || list.etAl { names = upper[0] + " et al." }
             else { names = upper.joined(separator: "; ") }
-        case .ieee, .gbt7714:
+        case .ieee, .gbt7714, .official:
             names = ""
         }
         return "(" + names + ", " + year + (page.map { ", " + $0 } ?? "") + ")"
@@ -474,11 +502,49 @@ public enum Citations {
         reference.kind == "journalArticle" || reference.kind == "press"
     }
 
+    /// Volume, issue and pages as one style prints them after the journal ("20(1), pp. 1-45"). Empty for books and web pages.
+    private static func journalDetails(_ r: Reference, style: CitationStyle) -> String {
+        let v = r.volume.trimmingCharacters(in: .whitespaces)
+        let i = r.issue.trimmingCharacters(in: .whitespaces)
+        let p = r.pages.trimmingCharacters(in: .whitespaces)
+        guard r.kind != "book", !isWebKind(r.kind), !(v.isEmpty && i.isEmpty && p.isEmpty) else { return "" }
+        let volumeIssue = v.isEmpty ? (i.isEmpty ? "" : "no. " + i) : v + (i.isEmpty ? "" : "(\(i))")
+        switch style {
+        case .harvard:
+            return [volumeIssue, p.isEmpty ? "" : "pp. " + p].filter { !$0.isEmpty }.joined(separator: ", ")
+        case .apa:
+            return [volumeIssue, p.replacingOccurrences(of: "-", with: "–")].filter { !$0.isEmpty }.joined(separator: ", ")
+        case .abnt:
+            return [v.isEmpty ? "" : "v. " + v, i.isEmpty ? "" : "n. " + i, p.isEmpty ? "" : "p. " + p]
+                .filter { !$0.isEmpty }.joined(separator: ", ")
+        case .ieee:
+            return [v.isEmpty ? "" : "vol. " + v, i.isEmpty ? "" : "no. " + i, p.isEmpty ? "" : "pp. " + p]
+                .filter { !$0.isEmpty }.joined(separator: ", ")
+        case .gbt7714:
+            let head = v.isEmpty ? i : v + (i.isEmpty ? "" : "(\(i))")
+            return p.isEmpty ? head : (head.isEmpty ? p : head + ": " + p)
+        case .official:
+            return ""
+        }
+    }
+
+    private static func isWebKind(_ kind: String) -> Bool {
+        ["webPage", "thinkTankReport", "governmentDocument", "press", "poll"].contains(kind)
+    }
+
+    /// One reference printed on its own in a style, without a number (for the finder).
+    public static func formatted(_ reference: Reference, style: CitationStyle) -> String {
+        entry(reference, style: style, letter: "")
+    }
+
     static func entry(_ reference: Reference, style: CitationStyle, letter: String) -> String {
         let list = Authors.parse(reference.authors)
         let people = list.people
         let title = reference.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let venue = reference.venue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let plainVenue = reference.venue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let detail = journalDetails(reference, style: style)
+        // The journal with its volume, issue and pages, in the way the style prints them.
+        let venue = detail.isEmpty ? plainVenue : (plainVenue.isEmpty ? detail : plainVenue + ", " + detail)
         let address = link(of: reference)
         let year = yearText(reference, letter: letter, style: style)
 
@@ -551,15 +617,17 @@ public enum Citations {
             text += title + "[\(code)]."
             if code == "EB/OL" {
                 if let year = reference.year { text += " (\(year))." }
-                if !venue.isEmpty { text += " " + sentence(venue) }
+                if !plainVenue.isEmpty { text += " " + sentence(plainVenue) }
                 if !web.isEmpty { text += " " + web + "." }
             } else {
-                let source = [venue, reference.year.map(String.init) ?? ""].filter { !$0.isEmpty }.joined(separator: ", ")
+                let source = [plainVenue, reference.year.map(String.init) ?? "", detail].filter { !$0.isEmpty }.joined(separator: ", ")
                 if !source.isEmpty { text += " " + source + "." }
                 if doi.isEmpty, !web.isEmpty { text += " " + web + "." }
             }
             if !doi.isEmpty { text += " DOI:" + doi + "." }
             return text
+        case .official:
+            return officialEntry(reference, list: list)
         case .ieee:
             func ieee(_ person: Person) -> String {
                 let initials = Authors.initials(person.given)
@@ -577,6 +645,127 @@ public enum Citations {
             if !venue.isEmpty { text += (text.isEmpty ? "" : " ") + venue + "," }
             text += (text.isEmpty ? "" : " ") + year + "."
             if !address.isEmpty { text += " [Online]. Available: " + address }
+            return text
+        }
+    }
+
+    // MARK: Official model
+
+    /// "2024-07-01" → "2024 年 7 月 1 日".
+    private static func chineseDate(_ iso: String) -> String {
+        let parts = iso.split(separator: "-").compactMap { Int($0) }
+        guard parts.count == 3 else { return iso }
+        return "\(parts[0]) 年 \(parts[1]) 月 \(parts[2]) 日"
+    }
+
+    /// The official model of the journal notes. Chinese sources are written the Chinese way
+    /// ("作者：《标题》，载《期刊》，2020 年第 7期，第 25-34 页。") and the others the English way
+    /// ("Author. “Title.” Journal, Vol.20, No.1, 2019, pp.1-45").
+    private static func officialEntry(_ r: Reference, list: AuthorList) -> String {
+        let people = list.people
+        let title = r.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        var venue = r.venue.trimmingCharacters(in: .whitespacesAndNewlines)
+        var publisher = r.publisher.trimmingCharacters(in: .whitespacesAndNewlines)
+        let year = r.year.map(String.init) ?? ""
+        let address = link(of: r)
+        let cjk = isCJK(title) || people.contains { isCJK($0.family) || isCJK($0.given) }
+        let issue = r.issue.trimmingCharacters(in: .whitespaces)
+        let volume = r.volume.trimmingCharacters(in: .whitespaces)
+        let pages = r.pages.trimmingCharacters(in: .whitespaces)
+
+        var kind = r.kind
+        if kind.isEmpty {
+            if !volume.isEmpty || !issue.isEmpty || !r.doi.isEmpty { kind = "journalArticle" }
+            else if !address.isEmpty { kind = "webPage" }
+            else { kind = "book" }
+        }
+        let isWeb = isWebKind(kind)
+
+        /// "Cambridge University Press, Cambridge" → "Cambridge University Press".
+        func withoutCity(_ text: String) -> String {
+            guard let comma = text.lastIndex(of: ","), !isWeb else { return text }
+            let head = String(text[..<comma])
+            let publishers = ["Press", "Publishers", "Publisher", "Books", "Verlag", "Publishing", "Academic"]
+            return publishers.contains(where: { head.hasSuffix($0) }) ? head : text
+        }
+        if kind == "book" { venue = withoutCity(venue) }
+        publisher = withoutCity(publisher)
+
+        func name(_ person: Person) -> String {
+            if isCJK(person.family) || isCJK(person.given) { return person.family + person.given }
+            if person.given.isEmpty { return person.family }
+            // "B" or "B." or "R D" are initials: print them with their points.
+            let letters = person.given.filter { $0 != "." && $0 != " " }
+            let isInitials = letters.count <= 3 && letters.allSatisfy { $0.isUppercase }
+            return (isInitials ? Authors.initials(person.given) : person.given) + " " + person.family
+        }
+
+        if cjk {
+            var authors = people.map(name).joined(separator: "，")
+            if list.etAl || people.count > 3 { authors = people.prefix(3).map(name).joined(separator: "，") + "等" }
+            let prefix = authors.isEmpty ? "" : authors + "："
+            let yearText = year.isEmpty ? "" : year + " 年"
+            let pageText = pages.isEmpty ? "" : "，第 \(pages) 页"
+            if isWeb {
+                var parts = [prefix + "《" + title + "》"]
+                if !venue.isEmpty { parts.append(venue) }
+                if !r.date.isEmpty { parts.append(r.date) } else if !yearText.isEmpty { parts.append(yearText) }
+                if !address.isEmpty { parts.append(address) }
+                if !r.accessed.isEmpty { parts.append("访问时间：" + chineseDate(r.accessed)) }
+                return parts.joined(separator: "，") + "。"
+            }
+            switch kind {
+            case "journalArticle":
+                let issueText = issue.isEmpty ? "" : "第 \(issue)期"
+                return prefix + "《" + title + "》，载《" + venue + "》，" + yearText + issueText + pageText + "。"
+            case "bookChapter":
+                let house = publisher.isEmpty ? "" : publisher + "，"
+                return prefix + "《" + title + "》，载《" + venue + "》，" + house + (year.isEmpty ? "" : year + " 年版") + pageText + "。"
+            default:
+                let house = venue.isEmpty ? "" : venue + "，"
+                return prefix + "《" + title + "》，" + house + (year.isEmpty ? "" : year + " 年版") + pageText + "。"
+            }
+        }
+
+        // Up to three authors are all named; more than that is "First, et al.".
+        var authors = ""
+        if list.etAl || people.count > 3, let first = people.first { authors = name(first) + ", et al." }
+        else if people.count >= 2 {
+            authors = people.dropLast().map(name).joined(separator: ", ") + " & " + name(people[people.count - 1])
+        } else if let one = people.first { authors = name(one) }
+        let lead = authors.hasSuffix(".") ? authors : authors + "."
+
+        if isWeb {
+            var parts: [String] = []
+            let head = authors.isEmpty ? "“\(title),”" : authors + ", “\(title),”"
+            parts.append(head + (venue.isEmpty ? "" : " " + venue))
+            if !r.date.isEmpty { parts.append(r.date) } else if !year.isEmpty { parts.append(year) }
+            if !address.isEmpty { parts.append(address) }
+            var text = parts.joined(separator: ", ")
+            if !r.accessed.isEmpty { text += ", 访问时间：" + chineseDate(r.accessed) + "。" }
+            return text
+        }
+        switch kind {
+        case "journalArticle":
+            var parts: [String] = [venue]
+            if !volume.isEmpty { parts.append("Vol.\(volume)") }
+            if !issue.isEmpty { parts.append("No.\(issue)") }
+            if !year.isEmpty { parts.append(year) }
+            if !pages.isEmpty { parts.append("pp.\(pages)") }
+            let quoted = "“\(title).”"
+            return (authors.isEmpty ? "" : lead + " ") + quoted + " " + parts.filter { !$0.isEmpty }.joined(separator: ", ")
+        case "bookChapter":
+            let house = [publisher, year].filter { !$0.isEmpty }.joined(separator: ", ")
+            var text = (authors.isEmpty ? "" : lead + " ") + "“\(title).”"
+            if !venue.isEmpty { text += " " + venue + "." }
+            if !house.isEmpty { text += " " + house + "." }
+            if !pages.isEmpty { text += " pp.\(pages)." }
+            return text
+        default:
+            let house = [venue, year].filter { !$0.isEmpty }.joined(separator: ", ")
+            var text = (authors.isEmpty ? "" : lead + " ") + sentence(title)
+            if !house.isEmpty { text += " " + house + "." }
+            if !pages.isEmpty { text += " pp.\(pages)." }
             return text
         }
     }

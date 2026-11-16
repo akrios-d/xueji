@@ -9,8 +9,8 @@ enum ImportOutcome {
     case table(ImportedResult)
     /// The PDF is not one of the tables, so it went to the Library as a source.
     case addedToLibrary(UUID)
-    /// The PDF was a quote triage report; it was brought into the Triage screen.
-    case triage(TriageImportSummary)
+    /// The PDF was a quote triage report; it was brought into the Evidence screen.
+    case evidence(EvidenceImportSummary)
     /// Nothing was added; the reason is shown to the user.
     case failed
 }
@@ -53,15 +53,15 @@ final class AppStore {
     var compilation: Compilation { compilations[trackID] ?? Compilation() }
 
     /// The quote triages of each project (a project may have several, for different terms).
-    private(set) var triageSets: [UUID: [Triage]] = [:]
+    private(set) var triageSets: [UUID: [EvidenceSet]] = [:]
     /// The one being shown in each project.
-    private var activeTriageIDs: [UUID: UUID] = [:]
+    private var activeEvidenceIDs: [UUID: UUID] = [:]
     /// The triages of the current project.
-    var triages: [Triage] { triageSets[trackID] ?? [] }
+    var triages: [EvidenceSet] { triageSets[trackID] ?? [] }
     /// The triage being worked on in the current project.
-    var triage: Triage {
+    var evidence: EvidenceSet {
         let list = triages
-        return list.first { $0.id == activeTriageIDs[trackID] } ?? list.first ?? Triage()
+        return list.first { $0.id == activeEvidenceIDs[trackID] } ?? list.first ?? EvidenceSet()
     }
 
     /// Called with the colours of the highlights found in an imported PDF, so they join the palette.
@@ -72,7 +72,7 @@ final class AppStore {
     init(
         workspace: Workspace, meID: UUID, trackID: UUID,
         drafts: [Draft] = [], readingVersions: [UUID: [ReadingVersion]] = [:], compilations: [UUID: Compilation] = [:],
-        triageSets: [UUID: [Triage]] = [:], startupMessage: String? = nil
+        triageSets: [UUID: [EvidenceSet]] = [:], startupMessage: String? = nil
     ) {
         self.workspace = workspace
         self.meID = meID
@@ -200,36 +200,36 @@ final class AppStore {
     // MARK: Triage
 
     /// Changes the triage being worked on (the first one is created when there is none yet).
-    func updateTriage(_ change: (inout Triage) -> Void) {
+    func updateEvidence(_ change: (inout EvidenceSet) -> Void) {
         var list = triageSets[trackID] ?? []
-        if list.isEmpty { list = [Triage()] }
-        let index = list.firstIndex { $0.id == activeTriageIDs[trackID] } ?? 0
+        if list.isEmpty { list = [EvidenceSet()] }
+        let index = list.firstIndex { $0.id == activeEvidenceIDs[trackID] } ?? 0
         var copy = list[index]
         change(&copy)
         guard copy != list[index] else { return }
         list[index] = copy
         triageSets[trackID] = list
-        activeTriageIDs[trackID] = copy.id
+        activeEvidenceIDs[trackID] = copy.id
         scheduleSave()
     }
 
     @discardableResult
-    func addTriage() -> UUID {
-        let created = Triage()
+    func addEvidence() -> UUID {
+        let created = EvidenceSet()
         triageSets[trackID, default: []].append(created)
-        activeTriageIDs[trackID] = created.id
+        activeEvidenceIDs[trackID] = created.id
         scheduleSave()
         return created.id
     }
 
-    func selectTriage(_ id: UUID) {
+    func selectEvidence(_ id: UUID) {
         guard triages.contains(where: { $0.id == id }) else { return }
-        activeTriageIDs[trackID] = id
+        activeEvidenceIDs[trackID] = id
     }
 
-    func deleteTriage(_ id: UUID) {
+    func deleteEvidence(_ id: UUID) {
         triageSets[trackID]?.removeAll { $0.id == id }
-        if activeTriageIDs[trackID] == id { activeTriageIDs[trackID] = triageSets[trackID]?.first?.id }
+        if activeEvidenceIDs[trackID] == id { activeEvidenceIDs[trackID] = triageSets[trackID]?.first?.id }
         scheduleSave()
     }
 
@@ -335,10 +335,10 @@ final class AppStore {
             report(.unreadableImport)
             return .failed
         }
-        if kind == nil || kind == .quoteTriage, let report = ImportedQuoteTriage.parse(pages) {
-            return .triage(applyQuoteTriage(report))
+        if kind == nil || kind == .evidenceReport, let report = ImportedEvidenceReport.parse(pages) {
+            return .evidence(applyEvidenceReport(report))
         }
-        if kind == .quoteTriage {
+        if kind == .evidenceReport {
             self.report(.unrecognizedImport)
             return .failed
         }

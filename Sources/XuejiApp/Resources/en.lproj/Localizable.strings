@@ -753,3 +753,30 @@
 "evidence.modifier.preview" = "Also counting the phrase “%@”.";
 "evidence.occurrences.withModifier" = "with “%@”";
 "evidence.occurrences.withCount" = "%d with “%@”";
+
+/* Evidence › Search (FR-124) */
+"evidence.tab.search" = "Search";
+"search.documents" = "Search in";
+"search.all" = "All";
+"search.none" = "None";
+"search.placeholder" = "Search the selected documents";
+"search.go" = "Search";
+"search.hint" = "Use quotes for an exact phrase. With several words, only pages that have all of them are listed.";
+"search.noneSelected" = "Choose at least one document.";
+"search.nothing" = "Nothing found in the selected documents.";
+"search.progress" = "Reading document %d of %d…";
+"search.count" = "%d found";
+"search.limit" = "Showing the first %d places. Narrow the search to see the rest.";
+"search.allChecked" = "All the places found are checked.";
+"reader.quote.save" = "Save as quote";
+"reader.quote.save.help" = "Save the selected text as a quote of the evidence report";
+"reader.quote.added" = "Saved as a quote of the evidence report.";
+"reader.quote.updated" = "The quote that held this passage now has the words you selected.";
+"reader.quote.exists" = "This passage is already a quote.";
+"evidence.quote.show" = "Show in the document";
+
+/* Cards that already exist (FR-127) */
+"card.duplicate.title" = "“%@” is already in this project.";
+"card.duplicate.message" = "A card with the same title or link is already here. Add another one anyway?";
+"card.duplicate.add" = "Add anyway";
+"card.duplicate.cancel" = "Don’t add";

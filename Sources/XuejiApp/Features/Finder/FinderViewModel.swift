@@ -66,8 +66,15 @@ final class FinderViewModel: IFinderView, IFinderController {
         let venue = result.kind == "book" ? result.publisher : result.venue
         if !venue.isEmpty { values["venue"] = .text(venue) }
         if !result.doi.isEmpty { values["doi"] = .text(result.doi) }
-        if store.addCard(typeID: ItemType.sourceID, title: result.title, url: url, values: values) != nil {
-            store.announce(Lf("inbox.created", result.title))
+        let add = { [store] in
+            if store.addCard(typeID: ItemType.sourceID, title: result.title, url: url, values: values) != nil {
+                store.announce(Lf("inbox.created", result.title))
+            }
+        }
+        if store.existingCard(typeID: ItemType.sourceID, title: result.title, url: url) != nil {
+            store.askAboutDuplicate(title: result.title, confirm: add)
+        } else {
+            add()
         }
     }
 

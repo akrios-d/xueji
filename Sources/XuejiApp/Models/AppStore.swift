@@ -21,6 +21,13 @@ struct ImportedResult {
     let summary: ImportSummary
 }
 
+/// A question about adding something that is already there.
+struct DuplicatePrompt: Identifiable {
+    let id = UUID()
+    let title: String
+    let confirm: () -> Void
+}
+
 /// The model layer the view models talk to. It owns the workspace and applies every change through
 /// the core rules. Data lives in memory only for now; persistence will plug in here.
 @Observable
@@ -34,6 +41,8 @@ final class AppStore {
     private(set) var notice: String?
     /// Shown on the Library screen (a PDF that went there on its own).
     private(set) var libraryNotice: String?
+    /// A card that is already in the project and would be added a second time: the student is asked first.
+    private(set) var duplicatePrompt: DuplicatePrompt?
     /// The card the user is looking at; shared by the board and the card panel.
     private(set) var focusedItemID: UUID?
     /// The card last dropped from the board, so it can be brought back.
@@ -259,6 +268,40 @@ final class AppStore {
         perform(L("undo.move")) { ws in _ = try ws.move(itemID: itemID, to: stage, by: meID) }
     }
 
+    /// A card of the project that already stands for the same thing: the same title (ignoring case, accents and
+    /// extra spaces) or, for a web link, the same address. Cards the student discarded do not count.
+    func existingCard(typeID: UUID, title: String, url: URL? = nil, fileName: String? = nil) -> Item? {
+        func key(_ text: String) -> String {
+            text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+                .split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+        }
+        func address(_ url: URL) -> String {
+            var text = url.absoluteString.lowercased()
+            while text.hasSuffix("/") { text.removeLast() }
+            return text
+        }
+        let wanted = key(title)
+        return workspace.items.values.first { item in
+            guard item.trackID == trackID, item.typeID == typeID, item.approval != .rejected else { return false }
+            if !wanted.isEmpty, key(item.title) == wanted { return true }
+            if let url, !url.isFileURL, let other = item.url, !other.isFileURL, address(other) == address(url) { return true }
+            // A PDF added before keeps its original name after the unique prefix of the copy.
+            if let fileName, let other = item.url, other.isFileURL, other.lastPathComponent.hasSuffix("-" + fileName) { return true }
+            return false
+        }
+    }
+
+    /// Asks whether to add a card that already exists; `confirm` runs only if the student says yes.
+    func askAboutDuplicate(title: String, confirm: @escaping () -> Void) {
+        duplicatePrompt = DuplicatePrompt(title: title, confirm: confirm)
+    }
+
+    func answerDuplicate(add: Bool) {
+        let prompt = duplicatePrompt
+        duplicatePrompt = nil
+        if add { prompt?.confirm() }
+    }
+
     /// Creates a card of any type as the student and returns its id, or nil when a rule refused it.
     @discardableResult
     func addCard(
@@ -277,7 +320,7 @@ final class AppStore {
 
     /// Adds any PDF to the library as a source card for study. The file is copied into the app's own folder, so
     /// the card keeps working if the original is moved or deleted. Returns the new card's id, or nil on failure.
-    func addReferencePDF(at url: URL) -> UUID? {
+    func addReferencePDF(at url: URL, allowDuplicate: Bool = false) -> UUID? {
         let folder: URL
         do {
             folder = try FileManager.default
@@ -297,6 +340,18 @@ final class AppStore {
         let metadataTitle = (attributes[PDFDocumentAttribute.titleAttribute] as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let title = metadataTitle.isEmpty ? fileTitle : metadataTitle
+        if !allowDuplicate, existingCard(typeID: ItemType.sourceID, title: title, fileName: url.lastPathComponent) != nil {
+            // Nothing is copied until the student says yes; then the same PDF is added as a second card.
+            askAboutDuplicate(title: title) { [weak self] in
+                // The permission to read the file ended when the picker's call did; ask for it again.
+                let isScoped = url.startAccessingSecurityScopedResource()
+                defer { if isScoped { url.stopAccessingSecurityScopedResource() } }
+                guard let self, let id = self.addReferencePDF(at: url, allowDuplicate: true) else { return }
+                self.focus(id)
+                self.announce(Lf("inbox.created", title))
+            }
+            return nil
+        }
         let author = (attributes[PDFDocumentAttribute.authorAttribute] as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 

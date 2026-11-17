@@ -32,6 +32,8 @@ final class ReaderViewModel: IReaderView, IReaderController {
 
     /// Wired by the composition root: goes back to the Library.
     var onClose: () -> Void = {}
+    /// Wired by the composition root: saves a passage (source, zero-based page, words) as a quote of the evidence report.
+    var saveEvidenceQuote: (UUID, Int, String) -> QuoteSaveOutcome = { _, _, _ in .empty }
 
     init(store: AppStore, colors: ColorLibrary) {
         self.store = store
@@ -184,6 +186,26 @@ final class ReaderViewModel: IReaderView, IReaderController {
         pdfView.clearSelection()
         hasSelection = false
         saveAndReload()
+    }
+
+    func saveAsEvidenceQuote() {
+        guard let pdfView, let selection = pdfView.currentSelection, let itemID,
+              let text = selection.string.map(Self.joinedLines), !text.isEmpty else {
+            message = L("reader.selectFirst")
+            return
+        }
+        let page = selection.pages.first.flatMap { pdfView.document?.index(for: $0) } ?? 0
+        switch saveEvidenceQuote(itemID, page, text) {
+        case .added: message = L("reader.quote.added")
+        case .updated: message = L("reader.quote.updated")
+        case .alreadySaved: message = L("reader.quote.exists")
+        case .empty: message = L("reader.selectFirst")
+        }
+    }
+
+    /// The selection as one line of text: words split by a hyphen at the end of a line are joined again.
+    private static func joinedLines(_ text: String) -> String {
+        clean(text.replacingOccurrences(of: "-\n", with: "").replacingOccurrences(of: "\u{00AD}", with: ""))
     }
 
     var colors: [MarkColor] { library.colors }

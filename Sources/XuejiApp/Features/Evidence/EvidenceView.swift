@@ -6,13 +6,15 @@ import XuejiCore
 /// importance, a timeline and the findings, ready to export.
 struct EvidenceView: View {
     let viewModel: any IEvidenceViewModel
+    let search: any IEvidenceSearchViewModel
 
     private enum Tab: String, CaseIterable, Identifiable {
-        case counts, quotes, timeline, findings, report
+        case counts, search, quotes, timeline, findings, report
         var id: String { rawValue }
         var symbol: String {
             switch self {
             case .counts: return "number"
+            case .search: return "magnifyingglass"
             case .quotes: return "quote.opening"
             case .timeline: return "calendar.day.timeline.left"
             case .findings: return "text.alignleft"
@@ -50,6 +52,7 @@ struct EvidenceView: View {
             Group {
                 switch tab {
                 case .counts: counts
+                case .search: EvidenceSearchTab(viewModel: search, evidence: viewModel) { editingQuote = $0 }
                 case .quotes: quotes
                 case .timeline: timeline
                 case .findings: findings
@@ -148,7 +151,7 @@ struct EvidenceView: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            .frame(maxWidth: 620)
+            .frame(maxWidth: 720)
         }
         .padding(.horizontal, 20).padding(.vertical, 12)
     }
@@ -180,7 +183,8 @@ struct EvidenceView: View {
     // MARK: Documents (the "counts" tab)
 
     private var counts: some View {
-        let rows = viewModel.rows
+        // Only real documents are listed: a source without a PDF here has nothing to read, count or quote.
+        let rows = viewModel.rows.filter(\.hasPDF)
         let term = viewModel.term.trimmingCharacters(in: .whitespacesAndNewlines)
         // A document with nothing to look for (the term is not in it, or it is left out) is not listed unless asked.
         let withTerm = rows.filter { hasTerm($0, term: term) }
@@ -451,18 +455,36 @@ struct EvidenceView: View {
                 }
             }
             Spacer(minLength: 8)
+            if let sourceID = quote.sourceID {
+                Button { viewModel.openSource(id: sourceID, page: pageIndex(of: quote)) } label: {
+                    Image(systemName: "doc.text.magnifyingglass")
+                }
+                .buttonStyle(.borderless)
+                .help(L("evidence.quote.show"))
+            }
             kindBadge(quote.kind)
         }
         .padding(.vertical, 4)
+        .padding(.trailing, 14)
         .contentShape(Rectangle())
         .onTapGesture(count: 2) { editingQuote = quote }
         .contextMenu {
+            if let sourceID = quote.sourceID {
+                Button(L("evidence.quote.show")) { viewModel.openSource(id: sourceID, page: pageIndex(of: quote)) }
+                Divider()
+            }
             Button(L("evidence.edit")) { editingQuote = quote }
             Button(L("compile.moveUp")) { viewModel.moveQuote(id: quote.id, by: -1) }.disabled(isFirst)
             Button(L("compile.moveDown")) { viewModel.moveQuote(id: quote.id, by: 1) }.disabled(isLast)
             Divider()
             Button(L("evidence.delete"), role: .destructive) { viewModel.deleteQuote(id: quote.id) }
         }
+    }
+
+    /// The zero-based page a quote came from, read from its locator ("p. 3"); the first page when it has none.
+    private func pageIndex(of quote: EvidenceQuote) -> Int {
+        let digits = quote.locator.drop(while: { !$0.isNumber }).prefix(while: { $0.isNumber })
+        return max((Int(digits) ?? 1) - 1, 0)
     }
 
     private func kindBadge(_ kind: EvidenceKind) -> some View {

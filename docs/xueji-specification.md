@@ -464,3 +464,41 @@ Independent milestones, so work can stop at any of them without losing what alre
 - **FR-120** Once a term is typed, the Documents tab lists only the documents that have something to look for: the term is in them (or their PDF is still being read). Documents without the term, and those left out of the counts, are behind "Show n documents without the term", so they can still be included again. The document shown on the right is always one of those listed, and when none has the term the screen says so.
 - **FR-121** Importing a source triage skips only the sources that are already there and not discarded: a source the student discarded comes back as a new card to approve. When some of the ones that were already there are still waiting for approval, the message says how many, and that only approved sources appear on the Evidence screen.
 - **FR-122** The Inbox has one import button, "Import a PDF…", instead of one per kind. Xueji recognises the PDF itself: a source triage or a table of statements puts cards in the Inbox, an evidence report goes into the Evidence screen (which is then opened), and any other PDF is added to the Library to read. Dropping a PDF on the Inbox does the same. The Evidence screen keeps its own "Import a report…" button for when the student already knows what the file is.
+
+### FR-124 Search the documents
+
+The Evidence screen has a **Search** tab, between Documents and Quotes.
+
+- A list of the project's approved sources that have a PDF, each with a checkbox ("Search in"), plus All and None. A new document is on until switched off. Changing the selection after a search runs it again.
+- A search field. Words are searched as whole words ignoring case, the same rule as the term count; text between quotes is an exact phrase. With several terms, only pages that contain every one of them are listed.
+- The results are grouped by document and show the page, the words around the match with the match in bold, and a count per document. At most 300 places are listed, and a note says when the list was cut.
+- A result opens the PDF in the reader on that page with the matched words marked. A button saves the passage as a quote with the page already filled in; a passage that is already a quote opens that quote instead (no duplicate quotes). Every result also has a check button, like the occurrences list of the Documents tab, and the marks are shared with it: a checked place is dimmed, and a link at the top hides the checked places or shows them again.
+- The pages are read on demand and kept in memory while the app runs; nothing is written to disk and nothing leaves the Mac. There is no meaning-based search and no generated answer: the tab only finds and shows text.
+- The search is not saved in the project; the text field and the selection start again when the project changes.
+
+### FR-125 Documents tab lists only real documents
+
+The Documents tab lists only the sources that have a PDF on this Mac, plus the documents of an imported report (FR-118). A source without a PDF (a card with only a link, a translation note) is not listed, because there is nothing to read, count, search or quote in it. Such sources still exist in the Library and can still be the source of an event on the timeline.
+
+### FR-126 Choose the quote in the document
+
+A quote is chosen where it is written, in the PDF:
+
+- In the reader, **Save as quote** (⇧⌘E, enabled when text is selected) sends the selected words to the evidence report as a quote of that document, with its page. Words split by a hyphen at the end of a line are joined and line breaks become spaces.
+- When a quote of the same document already holds these words (or part of them), that quote takes the selected words and the new page instead of a second quote being made, so a quote that was cut in the middle of a word is fixed by selecting the passage again. The same selection twice says it is already a quote. A message in the reader says which happened.
+- On the Quotes tab each quote has a **Show in the document** button (also in its menu) that opens the PDF on the page of the quote, ready for the student to select the passage.
+- The badge of the class is no longer cut at the right edge of the list.
+
+### FR-127 Warn before a repeated card
+
+Adding a card that is already in the project asks first instead of silently making a second one.
+
+- A card counts as already there when a card of the same type in the project, not discarded, has the same title (ignoring case, accents and extra spaces) or, for a web link, the same address.
+- **New card:** the form stays open with what was typed and asks "“Title” is already in this project. Add another one anyway?", with "Add anyway" and "Don't add".
+- **Add a PDF** (Library, Inbox, drag and drop): a PDF counts as already there when its title or its file name matches a card. Nothing is copied until the student says yes.
+- **References ▸ Find ▸ Add to Library** asks the same way.
+- Imports of tables still skip repeated rows by themselves and report how many were skipped; they do not ask.
+
+### FR-128 Name
+
+The app is called **Xueji** (学记 in Chinese: "record of learning", also the title of a classical Chinese text on education). "Research notebook" is only a description, for example the subtitle in a store listing, because an app with that name already exists. The name is the same in the window title, the Dock, the menu bar, the bundle, the code and the data folder.

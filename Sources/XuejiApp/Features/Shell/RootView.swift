@@ -18,6 +18,19 @@ struct RootView: View {
         .tint(Palette.accent)
         .overlay(alignment: .bottom) { errorBanner }
         .animation(.easeInOut(duration: 0.2), value: shell.errorMessage)
+        .confirmationDialog(
+            Lf("card.duplicate.title", shell.duplicateTitle ?? ""),
+            isPresented: Binding(
+                get: { shell.duplicateTitle != nil },
+                set: { if !$0 { shell.answerDuplicate(add: false) } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(L("card.duplicate.add")) { shell.answerDuplicate(add: true) }
+            Button(L("card.duplicate.cancel"), role: .cancel) { shell.answerDuplicate(add: false) }
+        } message: {
+            Text(L("card.duplicate.message"))
+        }
         .preferredColorScheme(settings.theme.colorScheme)
         // Palette colours read the theme when they resolve, so rebuild the tree when it changes.
         .id("\(settings.theme.rawValue)-\(settings.language.rawValue)")
@@ -147,7 +160,7 @@ struct RootView: View {
         case .stage(let stage): KanbanView(viewModel: container.kanban, panel: container.cardPanel, stage: stage)
         case .writing: WritingView(viewModel: container.writing)
         case .compile: CompileView(viewModel: container.compile)
-        case .evidence: EvidenceView(viewModel: container.evidence)
+        case .evidence: EvidenceView(viewModel: container.evidence, search: container.evidenceSearch)
         case .progress: ProgressOverviewView(viewModel: container.progress)
         case .prompts: PromptsView(viewModel: container.prompts)
         case .references:

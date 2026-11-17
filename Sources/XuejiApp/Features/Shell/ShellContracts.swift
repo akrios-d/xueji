@@ -17,6 +17,8 @@ protocol IShellView {
     /// How many cards sit in a stage.
     func cardCount(in stage: Stage) -> Int
     var errorMessage: String? { get }
+    /// The title of a card that is already there and would be added again; nil when nothing is being asked.
+    var duplicateTitle: String? { get }
 }
 
 /// What the app shell may trigger.
@@ -25,6 +27,8 @@ protocol IShellController {
     /// Leaves the reader for the screen it was opened from (the Library when there is none).
     func closeReader()
     func dismissError()
+    /// The answer to the question about adding a card again.
+    func answerDuplicate(add: Bool)
 }
 
 typealias IShellViewModel = IShellView & IShellController

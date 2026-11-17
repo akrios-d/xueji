@@ -1,8 +1,10 @@
 # Xueji 学记
 
+A research notebook for sources, quotes and timelines.
+
 Native Mac app (SwiftUI) for PhD and master's students. It organizes the daily work of research (readings, sources, chapters and notes) in tracks, with AI agents and people, such as a supervisor, helping along. Everything is stored on the device.
 
-The name 学记 (Xuéjì) means "record of learning". It is also the title of a classical Chinese text on education.
+The name 学记 (Xuéjì) means "record of learning". It is also the title of a classical Chinese text on education. The app is called **Xueji** in English and **学记** in Chinese. "Research notebook" is only a description (for example the subtitle in a store listing), not the name, because that name is already taken.
 
 - **Requires:** Xcode 16 or newer, macOS 14+.
 - **Languages:** English (base) and Simplified Chinese. The app follows the Mac's language, and is called 学记 in Chinese.

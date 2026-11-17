@@ -18,6 +18,7 @@ final class AppContainer {
     let links = LinksViewModel()
     let prompts = PromptsViewModel()
     let evidence: EvidenceViewModel
+    let evidenceSearch: EvidenceSearchViewModel
     let projects: ProjectsViewModel
     let library: LibraryViewModel
     let reader: ReaderViewModel
@@ -61,6 +62,7 @@ final class AppContainer {
         progress = ProgressViewModel(store: store)
         finder = FinderViewModel(store: store)
         evidence = EvidenceViewModel(store: store)
+        evidenceSearch = EvidenceSearchViewModel(store: store)
         projects = ProjectsViewModel(store: store)
         library = LibraryViewModel(store: store)
         let colors = ColorLibrary()
@@ -86,10 +88,13 @@ final class AppContainer {
             reader.open(itemID: id, page: page, search: term.isEmpty ? nil : term)
             shell.select(.reader)
         }
+        evidenceSearch.readAt = evidence.readAt
         cardPanel.readInApp = readInApp
         reader.onClose = { [shell] in shell.closeReader() }
-        projects.didSwitch = { [shell, writing, evidence] in
+        reader.saveEvidenceQuote = { [evidence] id, page, text in evidence.addQuote(sourceID: id, page: page, text: text) }
+        projects.didSwitch = { [shell, writing, evidence, evidenceSearch] in
             evidence.refresh()
+            evidenceSearch.refresh()
             // A PDF open in the reader belongs to the project just left.
             if shell.selectedSection == .reader { shell.select(.library) }
             writing.select(draftID: nil)

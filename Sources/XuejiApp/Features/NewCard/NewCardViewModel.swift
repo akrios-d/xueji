@@ -7,6 +7,7 @@ final class NewCardViewModel: INewCardView, INewCardController {
     private let store: AppStore
     private(set) var isPresented = false
     private(set) var selectedTypeID: UUID = ItemType.sourceID
+    private(set) var duplicateTitle: String?
 
     init(store: AppStore) { self.store = store }
 
@@ -47,9 +48,19 @@ final class NewCardViewModel: INewCardView, INewCardController {
     func setPresented(_ isPresented: Bool) { self.isPresented = isPresented }
     func selectType(_ id: UUID) { selectedTypeID = id }
 
-    func create(_ input: NewCardInput) {
+    func create(_ input: NewCardInput) { add(input, askIfDuplicate: true) }
+    func createAnyway(_ input: NewCardInput) { add(input, askIfDuplicate: false) }
+    func cancelDuplicate() { duplicateTitle = nil }
+
+    private func add(_ input: NewCardInput, askIfDuplicate: Bool) {
+        duplicateTitle = nil
         guard canCreate(input) else { return }
         let clean = Self.clean(input.title)
+        if askIfDuplicate, store.existingCard(typeID: selectedTypeID, title: clean, url: Self.url(from: input.link)) != nil {
+            // The form stays open with what was typed; the student decides.
+            duplicateTitle = clean
+            return
+        }
         var values: [String: FieldValue] = [:]
         if isSource {
             let authors = Self.clean(input.authors), venue = Self.clean(input.venue), doi = Self.clean(input.doi)

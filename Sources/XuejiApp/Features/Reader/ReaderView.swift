@@ -81,6 +81,12 @@ struct ReaderView: View {
                     Label(L("reader.underline"), systemImage: "underline")
                 }
                 .help(L("reader.underline"))
+                Button { viewModel.saveAsEvidenceQuote() } label: {
+                    Label(L("reader.quote.save"), systemImage: "quote.opening")
+                }
+                .keyboardShortcut("e", modifiers: [.command, .shift])
+                .disabled(!viewModel.hasSelection)
+                .help(L("reader.quote.save.help") + " (⇧⌘E)")
             }
         }
         .sheet(item: $sheet) { sheet in

@@ -41,6 +41,8 @@ protocol INewCardView {
     /// The choices for "kind of source".
     var kinds: [NewCardOption] { get }
     func canCreate(_ input: NewCardInput) -> Bool
+    /// The title of the card that is already in the project, while the student is being asked whether to add it again.
+    var duplicateTitle: String? { get }
 }
 
 /// What the "new card" form may trigger.
@@ -50,6 +52,9 @@ protocol INewCardController {
     func selectType(_ id: UUID)
     /// Creates the card (it lands on the board) and closes the form.
     func create(_ input: NewCardInput)
+    /// The answer "add it again" to the question about a card that already exists.
+    func createAnyway(_ input: NewCardInput)
+    func cancelDuplicate()
 }
 
 typealias INewCardViewModel = INewCardView & INewCardController

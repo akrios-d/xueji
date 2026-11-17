@@ -13,6 +13,7 @@ final class ShellViewModel: IShellView, IShellController {
 
     var pendingApprovalCount: Int { store.workspace.pendingApprovals().count }
     var errorMessage: String? { store.errorMessage }
+    var duplicateTitle: String? { store.duplicatePrompt?.title }
     func cardCount(in stage: Stage) -> Int { store.stageCount(stage) }
 
     // MARK: IShellController
@@ -24,6 +25,8 @@ final class ShellViewModel: IShellView, IShellController {
         if section == .reader, selectedSection != .reader { sectionBeforeReader = selectedSection }
         selectedSection = section
     }
+
+    func answerDuplicate(add: Bool) { store.answerDuplicate(add: add) }
 
     func closeReader() {
         let target = sectionBeforeReader ?? .library

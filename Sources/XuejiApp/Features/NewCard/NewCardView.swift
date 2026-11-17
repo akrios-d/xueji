@@ -41,6 +41,19 @@ struct NewCardView: View {
                     .disabled(!viewModel.canCreate(input))
             }
         }
+        .confirmationDialog(
+            Lf("card.duplicate.title", viewModel.duplicateTitle ?? ""),
+            isPresented: Binding(
+                get: { viewModel.duplicateTitle != nil },
+                set: { if !$0 { viewModel.cancelDuplicate() } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(L("card.duplicate.add")) { viewModel.createAnyway(input) }
+            Button(L("card.duplicate.cancel"), role: .cancel) { viewModel.cancelDuplicate() }
+        } message: {
+            Text(L("card.duplicate.message"))
+        }
         .padding(16)
         .frame(width: 380)
         .onAppear {

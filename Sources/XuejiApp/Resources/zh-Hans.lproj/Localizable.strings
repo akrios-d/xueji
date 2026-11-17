@@ -753,3 +753,30 @@
 "evidence.modifier.preview" = "同时统计短语“%@”。";
 "evidence.occurrences.withModifier" = "带“%@”";
 "evidence.occurrences.withCount" = "其中 %d 处带“%@”";
+
+/* Evidence › Search (FR-124) */
+"evidence.tab.search" = "搜索";
+"search.documents" = "搜索范围";
+"search.all" = "全选";
+"search.none" = "全不选";
+"search.placeholder" = "在所选文件中搜索";
+"search.go" = "搜索";
+"search.hint" = "用引号搜索完整短语。输入多个词时，只列出同时包含所有词的页面。";
+"search.noneSelected" = "请至少选择一个文件。";
+"search.nothing" = "在所选文件中未找到。";
+"search.progress" = "正在读取第 %d 个文件，共 %d 个…";
+"search.count" = "找到 %d 处";
+"search.limit" = "仅显示前 %d 处。缩小搜索范围可查看其余。";
+"search.allChecked" = "找到的所有位置都已核对。";
+"reader.quote.save" = "存为引文";
+"reader.quote.save.help" = "将所选文字存为证据报告中的引文";
+"reader.quote.added" = "已存为证据报告中的引文。";
+"reader.quote.updated" = "包含这段文字的引文已改为你所选的文字。";
+"reader.quote.exists" = "这段文字已经是引文。";
+"evidence.quote.show" = "在文件中查看";
+
+/* Cards that already exist (FR-127) */
+"card.duplicate.title" = "“%@”已在此项目中。";
+"card.duplicate.message" = "这里已有标题或链接相同的卡片。仍要再添加一张吗？";
+"card.duplicate.add" = "仍然添加";
+"card.duplicate.cancel" = "不添加";

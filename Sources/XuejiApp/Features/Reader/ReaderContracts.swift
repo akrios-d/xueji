@@ -2,6 +2,15 @@ import Foundation
 import PDFKit
 import XuejiCore
 
+/// What happened when a passage selected in the reader was sent to the evidence report as a quote.
+enum QuoteSaveOutcome {
+    case added
+    /// A quote of this document already held the passage; it now has the words that were selected.
+    case updated
+    case alreadySaved
+    case empty
+}
+
 enum MarkKind: String, CaseIterable, Identifiable {
     case highlight, underline
     var id: String { rawValue }
@@ -66,6 +75,8 @@ protocol IReaderController {
     func renameCurrentVersion(to name: String)
     func deleteCurrentVersion()
     func mark(_ kind: MarkKind)
+    /// Sends the selected text to the evidence report as a quote of this document, with its page.
+    func saveAsEvidenceQuote()
     func setMarkColor(_ color: MarkColor)
     /// Adds a colour of the student's own to the palette and starts using it.
     func addColor(name: String, hex: String)

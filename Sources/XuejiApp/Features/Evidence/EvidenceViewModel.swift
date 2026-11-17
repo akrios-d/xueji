@@ -272,6 +272,28 @@ final class EvidenceViewModel: IEvidenceView, IEvidenceController {
         }
     }
 
+    /// A passage selected in the reader. When a quote of the same document already holds these words (or part of
+    /// them), that quote takes the selected words instead of a second quote being made.
+    func addQuote(sourceID: UUID, page: Int, text: String) -> QuoteSaveOutcome {
+        let words = text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        guard !words.isEmpty else { return .empty }
+        if let held = savedQuote(sourceID: sourceID, text: words, excluding: nil) {
+            let same = held.text.split(whereSeparator: \.isWhitespace).joined(separator: " ").lowercased() == words.lowercased()
+            if same { return .alreadySaved }
+            var changed = held
+            changed.text = words
+            changed.locator = Lf("evidence.occurrences.page", page + 1)
+            store.updateEvidence { evidence in
+                if let index = evidence.quotes.firstIndex(where: { $0.id == held.id }) { evidence.quotes[index] = changed }
+            }
+            return .updated
+        }
+        store.updateEvidence { evidence in
+            evidence.quotes.append(EvidenceQuote(text: words, sourceID: sourceID, locator: Lf("evidence.occurrences.page", page + 1)))
+        }
+        return .added
+    }
+
     func deleteQuote(id: UUID) {
         store.updateEvidence { evidence in
             evidence.quotes.removeAll { $0.id == id }

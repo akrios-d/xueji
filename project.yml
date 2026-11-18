@@ -1,6 +1,6 @@
-# Generates Xueji.xcodeproj (run `xcodegen generate`). The generated project and Xcode/Info.plist are committed
-# so the app opens in Xcode without XcodeGen. Do not edit them by hand: change targets, settings and
-# permissions here, run `xcodegen generate` and commit the result.
+# Generates Xueji.xcodeproj (run `xcodegen generate`, XcodeGen 2.44 or newer). The generated project and Xcode/Info.plist
+# are committed so the app opens in Xcode without XcodeGen. Source files do not need a new run: Sources/XuejiApp is a
+# synchronized folder. Run it again only after changing targets, settings or permissions here, and commit the result.
 name: Xueji
 options:
   bundleIdPrefix: dev.xueji   # TODO: replace with your own reverse-DNS prefix
@@ -20,9 +20,10 @@ targets:
     type: application
     platform: macOS
     sources:
+      # A synchronized folder (Xcode 16): every file added, moved or deleted in this folder is part of the app at once,
+      # with no need to regenerate the project. (AppIcon.png is only for the SwiftPM build; here it is just a spare resource.)
       - path: Sources/XuejiApp
-        excludes:
-          - Resources/AppIcon.png   # only used to set the Dock icon of the SwiftPM build
+        type: syncedFolder
       - path: Xcode/Assets.xcassets
     dependencies:
       - package: Xueji
@@ -43,3 +44,16 @@ targets:
         ENABLE_HARDENED_RUNTIME: YES
         COMBINE_HIDPI_IMAGES: YES
         CODE_SIGN_STYLE: Automatic
+# One shared scheme for the app, committed with the project, so Xcode always offers the app (a real .app) and
+# never only the Swift package's command-line executable.
+schemes:
+  Xueji:
+    build:
+      targets:
+        Xueji: all
+    run:
+      config: Debug
+    profile:
+      config: Release
+    archive:
+      config: Release

@@ -43,3 +43,9 @@ Native Mac app (SwiftUI) for PhD and master's students. Read `README.md` and `do
 - Validate all external input at the boundary (the API, when it exists).
 - No secrets in code or logs. Tokens go in the Keychain.
 - Least privilege: agents never approve their own work.
+
+## Xcode project
+
+- `Xueji.xcodeproj` (with its shared **Xueji** scheme) and `Xcode/Info.plist` are generated from `project.yml` and committed, so anyone can `git pull` and open the project with nothing installed. `Sources/XuejiApp` is a synchronized folder: new, moved or deleted Swift files and resources there need no regeneration. Only a change to `project.yml` (targets, settings, permissions, assets) needs the user to run `xcodegen generate` and commit the project.
+- Tell the user to open `Xueji.xcodeproj` and use the **Xueji** app scheme, never the package scheme, which has no `.app`.
+

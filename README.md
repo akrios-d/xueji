@@ -13,9 +13,9 @@ The name 学记 (Xuéjì) means "record of learning". It is also the title of a 
 
 ## Running it
 
-1. Open `Package.swift` in Xcode.
-2. In the scheme picker (top bar), choose **Xueji** and **My Mac**, then press Run.
-3. Press ⌘U to run the tests.
+1. Open **`Xueji.xcodeproj`** in Xcode (not `Package.swift`: the package only builds a command-line executable, without a window, an icon or a bundle, so Spotlight and the Dock never see an app).
+2. In the scheme picker (top bar), choose **Xueji** (the one with the app icon) and **My Mac**, then press Run. The app is built as `Xueji.app` (**Product → Show Build Folder in Finder**).
+3. Run the tests with `swift test` in the terminal, or open `Package.swift` and press ⌘U.
 
 To try Chinese: **Product → Scheme → Edit Scheme → Run → Options → App Language → Chinese, Simplified**.
 
@@ -55,7 +55,7 @@ Same system as the web app and CogNote: warm off-white background, terracotta ac
 
 ## Xcode project
 
-The app also builds as a real macOS app (icon in Finder and the Dock, bundle identifier, permissions). The project is generated from `project.yml`, and the generated `Xueji.xcodeproj` is committed, so on another Mac you can just open it (step 3). Regenerate it only after changing `project.yml`, and commit the result:
+The app also builds as a real macOS app (icon in Finder and the Dock, bundle identifier, permissions). The project is generated from `project.yml`, and the generated `Xueji.xcodeproj` is committed. Whoever opens it only needs `git pull` and to open `Xueji.xcodeproj`; no tools are needed. New or moved Swift files under `Sources/XuejiApp` are picked up by Xcode by themselves (a synchronized folder). The developer regenerates the project only after changing `project.yml` (needs XcodeGen 2.44 or newer), and commits the result:
 
 1. `brew install xcodegen`
 2. `xcodegen generate` (in the project folder)
